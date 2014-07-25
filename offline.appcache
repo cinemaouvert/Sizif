@@ -1,0 +1,33 @@
+CACHE MANIFEST
+
+# v1.0.0 - 2014-06-24
+# manifest du cache d'application pour l'utilisation du Kanban board en hors-ligne.
+# la première ligne du fichier doit absolument être "CACHE MANIFEST" sinon le
+# navigateur le refuse.
+
+CACHE:
+# Pages que l'on met en cache
+
+# page principale
+index.html
+
+# css
+dist/css/style.css
+
+# js
+dist/js/built.js
+
+# json
+setting.json
+lang/de.json
+lang/en.json
+lang/es.json
+lang/fr.json
+lang/it.json
+
+# FALLBACK:
+# Page par default si il n'y a pas de réseau
+
+NETWORK:
+# Tous les autres fichiers qui utilisent le réseau
+*

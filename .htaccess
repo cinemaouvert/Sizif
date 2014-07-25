@@ -1,0 +1,4 @@
+
+# Ajout du MIMEtype pour le cache d'application
+
+AddType text/cache-manifest appcache

@@ -1,0 +1,24 @@
+
+
+	A REVOIR:
+		
+		- revoir la question des labels et de la partie input editable mais avant faut voir l'edition des cartes, 
+		cela apporteras pas mal de réponses.
+		- le compte des cartes par les Listes, dans certains contextes il est faux.
+		- la compatibilité avec MSIE
+		- le responsive design
+		- nettoyer le code.
+		
+		EDITION DES CARTES:
+		
+		- si la dernière action est la suppression d'un caractère, celui-ci n'as pas lieu.
+		- placer le curseur à la fin du texte, pour l'instant ça crée des erreurs.
+	
+	
+	TECHNIC USED:
+		
+		The different widgets created are javascript wrappers
+		construct around DOM's object. This choice allows to 
+		handle directly the DOM object that it represents using
+		the "this" pointer. The inconvenient of the method is that
+		we can't use the "instanceof" operator.

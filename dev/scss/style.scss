@@ -1,0 +1,345 @@
+
+$fontFamily1 : Helvetica, sans-serif;
+$fontFamily2 : Verdana, Helvetica, sans-serif;
+
+@mixin margin-side($margin){
+	margin-left: $margin;
+	margin-right: $margin;
+}
+
+@mixin dragged(){
+	box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.4);
+	transition-property: box-shadow;
+	transition-duration: 0.05s;
+}
+
+body{
+	margin: 0px;
+	padding: 0px;
+}
+h2{
+   font-size: 15px;
+   line-height: 25px;
+   margin: 0;
+   min-width: 30px;
+	font-family: $fontFamily1;
+	font-weight: 700;
+	color: rgba(0, 0, 0, 0.87);
+}
+li{
+	list-style: none;
+	text-overflow: ellipsis;
+   word-wrap: break-word;
+	font-family: $fontFamily1;
+	font-weight: 700;
+}
+
+input[type="text"]{
+	border: none;
+	border-top: 1px solid rgba(0, 0, 0, 0.4);
+	background: rgba(255, 255, 255, 0.85);
+	
+	&:focus{
+		outline: none;
+	}		
+}
+
+.Background{
+	position: absolute;
+	height: 100%;
+	width: 100%;
+	background: rgb(120, 120, 120);
+}
+
+/*********
+	HEAD
+**********/
+.Head{
+	height: 5%;
+	min-width: 100%;
+	background: rgb(80, 80, 80);
+	box-shadow: 0px -1px 0px rgba(255, 255, 255, 0.35) inset;
+}
+
+.lang-menu-head{
+	cursor: default;
+	padding: 0px;
+	box-shadow: 0px 1px 0px rgba(255, 255, 255, 0.15) inset;
+	margin: 0;
+	top: 1.3%;
+	right: 2%;
+	height: 2.5%;
+	position: absolute;
+	width: 2.3%;
+	font-weight: 700;
+	font-family: $fontFamily1;
+	text-align: center;
+	overflow: hidden;
+	color: rgba(255, 255, 255, 0.7);
+	background: rgb(127,127,127);
+}
+
+.lang-menu{
+	@extend .lang-menu-head;
+	padding: 2px 0px 2px 0px;
+	top: calc(3.8% + 1px);
+	font-size: 80%;
+	font-weight: 700;
+	display: none;
+	height: auto;
+	width: 3.40%;
+	right: 0.9%;
+	box-shadow: 0px 2px 3px rgba(0, 0, 0, 0.4), 0px 1px 0px rgba(255, 255, 255, 0.15) inset;
+	
+	.onclick{
+		color: rgba(255, 255, 255, 0.8);
+		text-shadow: 1px -2px 0px rgba(0, 0, 0, 0.3);
+		box-shadow: 0px 1px 2px rgba(255, 255, 255, 0.09) inset;
+	}
+}	
+	
+.lang-menu li{
+	display: block;
+	width: 100%;
+	line-height: 23px;
+	border-top: 1px solid rgb;
+	
+	&:hover{
+		background-color: rgba(0, 0, 0, 0.12);
+	}	
+}
+
+.lang-menu-btn{
+	box-shadow: 0px 1px 0px rgba(255, 255, 255, 0.15) inset;
+	text-align: center;
+	background: rgb(127,127,127);
+	border-radius: 0px 2px 0px 0px;
+	width: 1.05%;
+	top: 1.3%;
+	right: 0.9%;
+	height: 2.5%;
+	position: absolute;
+}
+
+/*********
+	NECK
+**********/
+.Neck{
+	height: 6.5%;
+	min-width: 100%;
+}
+
+/*********
+	BODY
+**********/
+.Body{
+	min-width: 99.5%;
+	padding-left: 0.25%;
+	padding-right: 0.25%;
+	overflow: auto;
+}
+
+/*********
+	LIST
+**********/
+.list, .list-dragged{
+	@include margin-side(0.25%);
+	background: rgb(220, 220, 220);
+	float: left;
+	width: 14%;
+	border-radius: 0px;
+	border-bottom: 2px solid rgba(0, 0, 0, 0.6);
+}
+
+.list-dragged{
+	@include dragged();
+}
+
+.list-dropZone{
+	@include margin-side(0.25%);
+	background: rgba(0, 0, 0, 0.4);
+	float: left;
+	border-radius: 0px;
+}
+.list-header{
+	cursor: default;
+	height: 25px;
+	margin: 3px;
+	border-radius: 1px 1px 0px 0px;
+	padding: 0px 5px 0px 5px;
+}
+
+.list-cardZone{
+	min-height: 35px;
+	max-height: 535px;
+	padding: 0px 9px 0px 9px;
+	overflow: auto;
+}
+.list-footer{
+	cursor: default; 
+	display: block;
+	height: 35px;
+	line-height: 35px;
+	padding: 0px 10px 0px 10px;
+	font-size: 14px;
+	font-weight: 400;
+	font-family: $fontFamily2;
+	color: rgba(0, 0, 0, 0.5);
+	
+	&:hover{
+		background: rgba(0, 0, 0, 0.1);
+		text-decoration: underline;
+		color: rgba(0, 0, 0, 0.7);
+	}
+}
+
+.list-contextMenu{
+	min-height: 5%;
+	min-width: 11%;
+	padding: 0.2% 0% 0.2% 0%;
+	background: rgb(255, 255, 255);
+	border: 1px solid rgba(190, 190, 190, 0.9);
+	box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.list-btnContextMenu{
+	width: 100%;
+	font-size: 68%;
+	cursor: default;
+	text-indent: 15%;
+	padding: 2.5% 0% 2.5% 0%;
+	font-family: $fontFamily2;
+	
+	&:hover{
+		background: rgba(230, 230, 230, 0.9);	
+	}
+}
+
+/****************************
+			CARD
+****************************/
+$cardPadding : 6px;
+
+.card, .card-caught, .card-dragged{
+	background: rgb(240, 240, 240);
+	min-height: 50px;
+	margin: 7px 0px 7px 0px;
+	box-shadow: 0px 1px 1px rgba(0, 0, 0, 0.1);
+	text-shadow: 0px 1px 0px rgba(255, 255, 255, 1);
+	border-top: 1px solid rgba(255, 255, 255, 0.75);
+	width: calc(100% - ($cardPadding * 2));
+	font-family: $fontFamily2;
+	color: rgba(0, 0, 0, 0.9);
+	font-size: 83%;
+	overflow: hidden;
+	position: relative;
+	padding: $cardPadding;
+	transition-property: box-shadow, text-shadow, border-top, background;
+	transition-duration: 0.1s;
+}
+
+.card-dragged{
+	@include dragged();
+}
+
+.card-text{
+	padding: 3px 0px 3px 0px;
+	
+	&:focus{
+		outline: 1px dotted rgba(0, 0, 0, 0.4);
+		text-shadow: 0px;	
+		border-top: 1px solid rgba(255, 255, 255, 1);
+		background: rgb(250, 250, 250);
+	}
+}
+
+.card-dropZone{
+	@extend .card;
+	background: rgba(0, 0, 0, 0.1);
+	box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.5) inset;
+	border: none;
+	border-bottom: 1px solid rgba(255, 255, 255, 1);
+}
+
+.card-editBar{
+	position: absolute;
+	background: rgba(200, 200, 200, 0.2);
+	left: 0px;
+	height: 22px;
+	width: 100%;
+}
+
+.card-btnClose{
+	height: 100%;
+	width: 5.5%;
+	margin-right: 2%;
+	float: right;
+	background-image: url(../../img/btnClose.svg);
+	background-repeat: no-repeat;
+	
+	&:hover{
+		background-image: url(../../img/btnCloseOver.svg);
+	}
+}
+
+.card-btnEdit{
+	height: 100%;
+	width: 5.5%;
+	margin-right: 2%;
+	float: right;
+	background-image: url(../../img/btnEdit.svg);
+	background-repeat: no-repeat;
+	
+	&:hover{
+		background-image: url(../../img/btnEditOver.svg);
+	}
+}
+
+/****************************
+			ADD A LIST
+****************************/
+.btn_addList{
+	cursor: default;
+	background: rgb(80, 80, 80);
+	border-radius: 0px 0px 2px 2px;
+	margin-left: 0.25%;
+	margin-right: 0.25%;
+	padding: 0.7%;
+	padding-top: 0.05%;
+	padding-bottom: 0.2%;
+	color: rgba(255, 255, 255, 0.7);
+	float: left;
+	font-size: 18px;
+	line-height: 27px;
+	font-weight: 900;
+	font-family: $fontFamily2;
+	
+	&:hover{
+		background: rgb(60, 60, 60);
+		color: rgba(255, 255, 255, 0.9);
+	}
+}
+
+/****************************
+			MEDIA QUERIES
+****************************/
+@media all and (min-height:300px) and (max-height: 560px) {
+	.lang-menu-head{
+		font-size: 70%;
+		line-height: 103%;
+	}
+}
+
+@media all and (min-height:560px) and (max-height: 720px) {
+	.lang-menu-head{
+		font-size: 75%;
+		line-height: 123%;
+	}
+}
+
+@media all and (min-height:720px) {
+	.lang-menu-head{
+		font-size: 85%;
+		line-height: 163%;
+	}
+}

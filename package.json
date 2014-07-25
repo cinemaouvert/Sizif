@@ -1,0 +1,23 @@
+{
+  "name": "Trello_like",
+  "version": "0.0.0",
+  "description": "Permet la gestion d'un kanban board",
+  "main": "built.js",
+  "dependencies": {},
+  "devDependencies": {
+    "grunt": "^0.4.5",
+    "grunt-contrib-sass": "^0.7.3",
+    "grunt-contrib-concat": "^0.4.0",
+    "grunt-contrib-watch": "^0.6.1",
+    "grunt-jsdoc": "^0.5.6"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "Z:/1-Activite/1.8-Programmation/Web/www/Trello_like"
+  },
+  "author": "Yohann_Vioujard",
+  "license": "ISC"
+}

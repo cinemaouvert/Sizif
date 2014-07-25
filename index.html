@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+
+<HTML> <!--manifest="offline.appcache" A NE METTRE QU'EN PRODUCTION-->
+	<HEAD>
+		<META HTTP-EQUIV='Content-Type' CONTENT='text/html;charset=UTF-8'>
+		<TITLE> Is Kanban </TITLE>
+		<LINK rel=stylesheet type='text/css' href='dist/css/style.css'>
+	</HEAD>
+ 
+	<BODY>
+		<section class="Background">
+			<div class="Head">
+				<div class="BoardsMenu"></div>
+				<div class="TopCenter"></div>
+				<div class="lang-menu-head"></div>
+				<ul class="lang-menu">
+					<li>En</li>
+					<li>Fr</li>
+					<li>Es</li>
+					<li>De</li>
+					<li>It</li>
+				</ul>
+				<div class="lang-menu-btn">
+					<img src="img/arrowS.svg">
+				</div>
+			</div>
+			
+			<div class="Neck"></div>
+			
+			<div class="Body">
+				<!--Ajouter une liste-->
+				<a class="btn_addList">+</a>
+			</div>
+			
+		</section>
+		
+		<!--SCRIPT PRINCIPAL-->
+		<script src="dist/js/built.js"></script>
+		
+		<!--SOCKET.IO-->
+		<!--<script src="http://localhost:8900/socket.io/socket.io.js"></script>-->
+		
+	</BODY>
+</HTML>
+ 
