@@ -11,10 +11,12 @@ function hideMask(){
 	Card.showMask = false;
 }
 
-//On crée les listes par défaut
-for(var i = 0; i<SETTING.number_default_list; i++){
-	new List().addCard(false);
-}
+/** Create the default lists */
+(function(){
+	new List(TEXT["To do"]).addCard(false);
+	new List(TEXT["In progress"]).addCard(false);
+	new List(TEXT["Done"]).addCard(false);
+})()
 
 util.addEvent(BTN_ADDLIST, "click", function(){new List;});
 

@@ -1,15 +1,12 @@
 /**
- * Allows to create labels with advanced properties.
- * NOTE: 
- *		Cette version des label ne fait pas augmenter la taille de l'input
- *		en fonction de ce qui est tapé. La taille est fixe.
- *
+ * Allows to create titles with advanced properties.
+ * Used by List.
  * @constructor
- * @param {string} [text] - The text contained in the label.
- * @param {string} [tag] - The tag used to create the label.
- * @returns {object} container - The DOM object representing the label
+ * @param {string} [text] - The text contained in the ListTitle.
+ * @param {string} [tag] - The tag used to create the ListTitle.
+ * @returns {object} container - The DOM object representing the ListTitle
  */
-function Label(text, tag){
+function ListTitle(text, tag){
 	if(typeof(tag) == "undefined"){
 		this.tag = "p";
 	}else{
@@ -23,8 +20,6 @@ function Label(text, tag){
 	this.text = "";
 	this.inputEditable = false;
 	this.isInputEdited = false;
-	this.startClick = 0;
-	this.clickDuration = 100
 	this.listIntagAttribute = [];
 	
 	//On crée l'objet
@@ -45,7 +40,7 @@ function Label(text, tag){
 	
 	// References on the functions which allow to handle the animations
 	container.REF_EVENT_onmousedown = container.EVENT_onmousedown.bind(container);
-	container.REF_EVENT_onmouseup = container.EVENT_onmouseup.bind(container);
+	container.REF_EVENT_ondblclick = container.EVENT_ondblclick.bind(container);
 	container.REF_EVENT_onkeydown = container.EVENT_onkeydown.bind(container);
 	container.REF_EVENT_writing = container.EVENT_writing.bind(container);
 	
@@ -56,20 +51,20 @@ function Label(text, tag){
 /**
  * Getter for the text attribute.
  * @function getText
- * @memberof Label.prototype
+ * @memberof ListTitle.prototype
  * @returns {string}  
  */
-Label.prototype.getText = function(){
+ListTitle.prototype.getText = function(){
 	return this.text;
 }
 
 /**
  * Setter for the text attribute.
  * @function setText
- * @memberof Label.prototype
+ * @memberof ListTitle.prototype
  * @param {string} newText
  */
-Label.prototype.setText = function(newText){
+ListTitle.prototype.setText = function(newText){
 	var listAttributes = this.intag.attributes;
 	this.text = newText;
 	this.removeChild(this.intag);
@@ -86,24 +81,24 @@ Label.prototype.setText = function(newText){
 }
 
 /**
- * @memberof Label.prototype
+ * @memberof ListTitle.prototype
  */
-Label.prototype.setAttribute = function(attribute, value){
+ListTitle.prototype.setAttribute = function(attribute, value){
 	this.intag.setAttribute(attribute, value);
 }
 
 /**
  * Standard Editable
- * @memberof Label.prototype
+ * @memberof ListTitle.prototype
  */
-Label.prototype.isStandardEditable = function(){
+ListTitle.prototype.isStandardEditable = function(){
 	return this.contentEditable;
 }
 
 /**
- * @memberof Label.prototype
+ * @memberof ListTitle.prototype
  */
-Label.prototype.setStandardEditable = function(bool){
+ListTitle.prototype.setStandardEditable = function(bool){
 	if(bool){
 		this.contentEditable = true;
 	}else{
@@ -115,20 +110,20 @@ Label.prototype.setStandardEditable = function(bool){
 
 /**
  * Input Editable
- * @memberof Label.prototype
+ * @memberof ListTitle.prototype
  */
-Label.prototype.isInputEditable = function(){
+ListTitle.prototype.isInputEditable = function(){
 	return this.inputEditable;
 }
 
 /**
- * @memberof Label.prototype
+ * @memberof ListTitle.prototype
  */
-Label.prototype.setInputEditable = function(bool){
+ListTitle.prototype.setInputEditable = function(bool){
 	if(bool){
 		this.inputEditable = true;
 		util.addEvent(document, 'mousedown', this.REF_EVENT_onmousedown);
-		util.addEvent(document, 'mouseup', this.REF_EVENT_onmouseup);
+		util.addEvent(document, 'dblclick', this.REF_EVENT_ondblclick);
 	}else{
 		if(this.inputEditable){
 			this.inputEditable = false;
@@ -138,9 +133,9 @@ Label.prototype.setInputEditable = function(bool){
 }
 
 /**
- * @memberof Label.prototype
+ * @memberof ListTitle.prototype
  */
-Label.prototype.EVENT_onmousedown = function(event){
+ListTitle.prototype.EVENT_onmousedown = function(event){
 	var target = event.target || event.srcElement;
 
 	if(!event.which && event.button){ // Firefox, Chrome, etc...
@@ -149,9 +144,7 @@ Label.prototype.EVENT_onmousedown = function(event){
 		var button = event.which;
 	}	
 	
-	if(button == 1 && (target == this || util.hasParent(target, this))){
-		this.startClick = new Date();
-	}else if(button == 1 && this.isInputEdited){
+	if(button == 1 && this.isInputEdited){
 		//On empèche le comportement par défaut de l'évênement
 		event.returnValue = false; 
 		if(event.preventDefault) event.preventDefault();
@@ -160,16 +153,10 @@ Label.prototype.EVENT_onmousedown = function(event){
 		
 		// We remove the "onkeydown" events
 		util.removeEvent(document, 'keydown', this.REF_EVENT_onkeydown);
-		
-		// We add the "onmouseup" event
-		util.addEvent(document, 'mouseup', this.REF_EVENT_onmouseup);
 	}
 }
 
-/**
- * @memberof Label.prototype
- */
-Label.prototype.EVENT_onmouseup = function(event){
+ListTitle.prototype.EVENT_ondblclick = function(event){
 	var target = event.target || event.srcElement;
 	
 	if(!event.which && event.button){ // Firefox, Chrome, etc...
@@ -179,30 +166,18 @@ Label.prototype.EVENT_onmouseup = function(event){
 	}
 
 	if(button == 1 && (target == this || util.hasParent(target, this))){
-		var now = new Date();
-		var currentClickDuration = now - this.startClick;
-
-		if(currentClickDuration < this.clickDuration){
-			//On empèche le comportement par défaut de l'évênement
-			event.returnValue = false; 
-			if(event.preventDefault) event.preventDefault();
-			
-			// We remove the event		
-			util.removeEvent(document, 'click', this.REF_EVENT_ondblclick);		
-			
-			//On lance l'edition via un input
-			this.inputEdit();
-			
-			// we add the "onkeydown" event which will allow to restore the label
-			util.addEvent(document, 'keydown', this.REF_EVENT_onkeydown);
-		}
+		//On lance l'edition via un input
+		this.inputEdit();
+		
+		// we add the "onkeydown" event which will allow to restore the ListTitle
+		util.addEvent(document, 'keydown', this.REF_EVENT_onkeydown);
 	}
 }
 
 /**
- * @memberof Label.prototype
+ * @memberof ListTitle.prototype
  */
-Label.prototype.EVENT_onkeydown = function(event){ // On remet tout dans son état normal si la touche "Entrée" a été préssée
+ListTitle.prototype.EVENT_onkeydown = function(event){ // On remet tout dans son état normal si la touche "Entrée" a été préssée
 	if(event.keyCode == 13){
 		var target = event.target || event.srcElement;
 		if(this.isInputEdited){
@@ -219,9 +194,9 @@ Label.prototype.EVENT_onkeydown = function(event){ // On remet tout dans son éta
 }
 
 /**
- * @memberof Label.prototype
+ * @memberof ListTitle.prototype
  */
-Label.prototype.inputEdit = function(){
+ListTitle.prototype.inputEdit = function(){
 	if(!this.isInputEdited){
 		this.isInputEdited = true;
 
@@ -248,9 +223,9 @@ Label.prototype.inputEdit = function(){
 
 //NOTE: varie selon le caractère, à rendre plus précis.
 /**
- * @memberof Label.prototype
+ * @memberof ListTitle.prototype
  */
-Label.prototype.EVENT_writing = function(event){
+ListTitle.prototype.EVENT_writing = function(event){
 	var input = this.intag;		
 	
 	if(this.inputWidth == 0){
@@ -276,9 +251,9 @@ Label.prototype.EVENT_writing = function(event){
 }
 
 /**
- * @memberof Label.prototype
+ * @memberof ListTitle.prototype
  */
-Label.prototype.reset = function(){
+ListTitle.prototype.reset = function(){
 	this.isInputEdited = false;
 
 	//On remet en état la balise
@@ -298,9 +273,9 @@ Label.prototype.reset = function(){
 }
 
 /**
- * @memberof Label.prototype
+ * @memberof ListTitle.prototype
  */
-Label.prototype.inheritStyleInput = function(newInput){
+ListTitle.prototype.inheritStyleInput = function(newInput){
 	var parentNode = this.parentNode;
 	var oldContent = this.intag;
 	var textOldContent = oldContent.firstChild;

@@ -2,11 +2,14 @@
 /**
  * Provides cards
  * @constructor
- * @param {object} [parentList] - The list which contains the card.
+ * @param {object} parentList - The list which contains the card.
  * @param {string} [text] - The card's text.
  * @returns {object} card - The DOM object representing the card.
  */
 function Card(parentList, text){
+	if(typeof(parentList) == "undefined"){
+		throw "The card must have a parent list to be create.";
+	}
 
 	// we define as draggable all the other cards
 	if(Card.cardList.length > 0){
@@ -19,7 +22,7 @@ function Card(parentList, text){
 
 	Card.cardList.push(this);
 
-	this.parentList = "undefined";
+	this.parentList = parentList;
 	this.text = "";
 	this.textHtml = "";
 
@@ -49,15 +52,10 @@ function Card(parentList, text){
 	this.btnEdit.className = "card-btnEdit";
 	this.editBar.appendChild(this.btnEdit);
 
-	if(typeof(parentList) != "undefined"){
-		this.parentList = parentList;
-		this.parentList.addCard(this);
-	}
-
 	if(typeof(text) != "undefined"){
 		this.setText(text);
 	}else{
-		this.setText(TEXT.CARD_defaultTitle);
+		this.setText(TEXT["New card"]);
 	}
 
 	this.decalX = 0;
@@ -91,21 +89,18 @@ function Card(parentList, text){
 
 	// We set the current card as editable
 	card.setEditable(true);
-
+	
 	// Add context menu
-	ContextMenu.add(card, [TEXT.LIST_btnAddCard, "Annuler", "Retablir", TEXT.LIST_btnRemove]) // EN TEST
+	
+	ContextMenu.add(card, 
+		{label: function(){ return TEXT["Add a card"]}, action: function(){card.parentList.addCard()}},
+		{label: function(){ return TEXT["Undo"]}, action: function(){}}, 
+		{label: function(){ return TEXT["Redo"]}, action: function(){}},
+		{label: function(){ return TEXT["Remove the list"]}, action: function(){card.parentList.remove()}}
+	)
 
 	// We return the created card
 	return card;
-}
-
-/**
- * Must be used after the dom attribute was embed by the parentlist into the DOM
- * @memberof Card.prototype
- */
-Card.prototype.setParentList = function(list){
-	this.parentList = list;
-	this.cardText.style.minHeight = util.getStyle(this.cardText, "height"); // In pixels
 }
 
 /**
@@ -129,51 +124,44 @@ Card.prototype.setDraggable = function(bool){
  * @memberof Card.prototype
  */
 Card.prototype.setEditable = function(bool){
-	if(bool){
-		if(!this.editable){
-			this.editable = true;
-			this.setDraggable(false);
-			this.hideEditBar(12);
+	if(bool && !this.editable){
+		this.editable = true;
+		this.setDraggable(false);
+		this.hideEditBar(12);
 
-			this.cardText.contentEditable = true;
-			this.cardText.style.cursor = "text";
-			this.cardText.focus();
+		this.cardText.contentEditable = true;
+		this.cardText.style.cursor = "text";
+		this.cardText.focus();
 
-			// Allow to put the Caret at the end of the text
-		  if (document.getSelection) {    // all browsers, except IE before version 9
-             var sel = document.getSelection ();
-             // sel is a string in Firefox and Opera,
-             // and a selectionRange object in Google Chrome, Safari and IE from version 9
-             //console.log(sel);
-         }
-         else {
-             if (document.selection) {   // Internet Explorer before version 9
-                 	var textRange = document.selection.createRange ();
-                	//console.log(textRange.text);
-             }
-         }
-		  	//sel.collapse(this.cardText.firstChild, this.cardText.textContent.length);
-
-		  	// We add the "onkeydown" event
-			util.addEvent(document, "keydown", this.REF_EVENT_onkeydown);
-		}
-	}else{
-		if(this.editable){
-			var isEmpty = /^\s*$/gi;
-			if(isEmpty.test(this.getText())){
-				this.cardText.blur();
-				this.remove();
-			}else{
-				this.editable = false;
-				this.setDraggable(true);
-				this.cardText.contentEditable = false;
-				this.cardText.style.cursor = "default";
-				this.cardText.blur();
-				this.cardText.innerHTML = this.textHtml;
-
-				// We remove the "onkeydown" event
-				util.removeEvent(document, "keydown", this.REF_EVENT_onkeydown);
+		// Allow to put the Caret at the end of the text
+		if (document.getSelection) {    // all browsers, except IE before version 9
+			var sel = document.getSelection ();
+			// sel is a string in Firefox and Opera,
+			// and a selectionRange object in Google Chrome, Safari and IE from version 9
+		}else{
+			if(document.selection) {   // Internet Explorer before version 9
+				var textRange = document.selection.createRange ();
 			}
+		}
+		//sel.collapse(this.cardText.firstChild, this.cardText.textContent.length);
+
+		// We add the "onkeydown" event
+		util.addEvent(document, "keydown", this.REF_EVENT_onkeydown);
+	}else if(this.editable){
+		var isEmpty = /^\s*$/gi;
+		if(isEmpty.test(this.getText())){
+			this.cardText.blur();
+			this.remove();
+		}else{
+			this.editable = false;
+			this.setDraggable(true);
+			this.cardText.contentEditable = false;
+			this.cardText.style.cursor = "default";
+			this.cardText.blur();
+			this.cardText.innerHTML = this.textHtml;
+
+			// We remove the "onkeydown" event
+			util.removeEvent(document, "keydown", this.REF_EVENT_onkeydown);
 		}
 	}
 }
@@ -191,6 +179,9 @@ Card.prototype.remove = function(){
 		}
 	}
 
+	// We remove the context menu
+	ContextMenu.remove(this)
+	
 	// We remove the "onmousedown" event
 	util.removeEvent(document, "mousedown", this.REF_EVENT_onmousedown);
 
@@ -228,6 +219,7 @@ Card.prototype.getText = function(){
 
 /**
  * @memberof Card.prototype
+ * @event
  */
 Card.prototype.EVENT_onmousedown = function(event){
 	var target = event.target || event.srcElement;
@@ -290,7 +282,7 @@ Card.prototype.EVENT_onmousedown = function(event){
 			this.parentList.removeCard(this); // We remove the card from the parentList
 
 			Card.createMask(); // We create the Cards's masks
-			List.createMask(true); // We create the empty lists's mask
+			List.createMask(true); // We create the masks for the empty lists
 			if(this.parentList.cardNumber() == 1){
 				List.createMask(this.parentList); // We create a mask for the parentList if the current card is alone in it
 			}
@@ -303,6 +295,7 @@ Card.prototype.EVENT_onmousedown = function(event){
 
 /**
  * @memberof Card.prototype
+ * @event
  */
 Card.prototype.EVENT_onmousemove = function(event){
 	var target = event.target || event.srcElement;
@@ -323,6 +316,7 @@ Card.prototype.EVENT_onmousemove = function(event){
 
 /**
  * @memberof Card.prototype
+ * @event
  */
 Card.prototype.EVENT_onmouseup = function(event){
 	var target = event.target || event.srcElement;
@@ -334,7 +328,7 @@ Card.prototype.EVENT_onmouseup = function(event){
 	}
 
 	if(button == 1 && this.dragged){
-		// On empèche le comportement par défaut
+		/** prevent the default behavior */
 		event.returnValue = false;
 		if(event.preventDefault){
 			event.preventDefault();
@@ -345,7 +339,7 @@ Card.prototype.EVENT_onmouseup = function(event){
 		this.decalX = 0;
 		this.decalY = 0;
 
-		//On supprime les mask
+		/** remove the masks */
 		Card.removeMask()
 		List.removeMask()
 
@@ -354,21 +348,20 @@ Card.prototype.EVENT_onmouseup = function(event){
 		this.className = "card";
 		this.dropZone.parentNode.replaceChild(this, this.dropZone);
 
-		this.parentList.removeCard(this); // We remove the card from the parentList
-		this.parentList = this.parentNode.parentNode; // We change the "parentList" attribute
-		this.parentList.addCard(this); // We add the card to the new parent list
+		/** handle the parentList property */
+		this.parentList.removeCard(this); // remove the card from the parentList
+		this.parentList = this.parentNode.parentNode; // change the "parentList" attribute
+		this.parentList.addCard(this); // add the card to the new parent list
 
-		this.dropZone = 'undefined';	// We erase the "dropZone" attribute
+		this.dropZone = 'undefined';	// erase the "dropZone" attribute
 
-		// We add the "onmousedown" event
+		/** We add the "onmousedown" event */
 		util.addEvent(document, "mousedown", this.REF_EVENT_onmousedown);
 
 	}else if(button == 1 && target == this.btnEdit){
 		this.setEditable(true);
 	}else if(button == 1 && target == this.btnClose){
 		this.remove();
-	}else{
-		ContextMenu.remove();
 	}
 }
 
@@ -447,7 +440,6 @@ Card.prototype.EVENT_onkeydown = function(event){
 		}
 		this.editBar.style.top = "100%";
 	}
-	//console.log(event.keyCode)
 }
 
 /**

@@ -1,6 +1,11 @@
 {
-	"LIST_defaultTitle" : "New list",
-	"LIST_btnAddCard" : "Add a card...",
-	"LIST_btnRemove" : "Delete the list",
-	"CARD_defaultTitle" : "New card"
+	"To do"            : "To do",
+	"In progress"      : "In progress",
+	"Done"             : "Done",
+	"New list"         : "New list",
+	"Add a card"       : "Add a card",
+	"Remove the list"  : "Remove the list",
+	"New card"         : "New card",
+	"Undo"             : "Undo",
+	"Redo"             : "Redo"
 }

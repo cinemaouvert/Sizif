@@ -9,11 +9,11 @@ function List(title, textBtnFooter){
 	List.counter++;
 
 	if(typeof(title) == "undefined"){
-		title = TEXT.LIST_defaultTitle;
+		title = TEXT["New list"];
 	}
 
 	if(typeof(textBtnFooter) == "undefined"){
-		textBtnFooter = TEXT.LIST_btnAddCard;
+		textBtnFooter = TEXT["Add a card"] + "...";
 	}
 
 	var list = document.createElement("div");
@@ -24,7 +24,7 @@ function List(title, textBtnFooter){
 	listHeader.className = "list-header";
 
 	// title
-	this.labelHead = new Label(title, "h2");
+	this.labelHead = new ListTitle(title, "h2");
 	this.labelHead.style.display = "inline-block";
 
 	// Manage the overflow of the title
@@ -61,56 +61,33 @@ function List(title, textBtnFooter){
 
 	this.position = List.counter;
 	this.dragged = false;
-	this.decalX = 0;
-	this.decalY = 0;
+	this.offsetX = 0;
+	this.offsetY = 0;
 	this.clicked = false;
-	this.clickDuration = 115;
 	this.dropZone = 'undefined';
-	this.btnRemove;
-	this.btnAddCard;
 
-	// Attributes used to handle cards
+	/** Attributes used to handle cards */
 	this.cardList = new Array;
-
-	// We set the duration of the click for the label
-	this.labelHead.clickDuration = this.clickDuration - 1;
 
 	util.inherit(list, this);
 
-	// References on the functions which handle the animations
+	/** References to the functions which handle the animations */
 	list.REF_EVENT_onmousedown = list.EVENT_onmousedown.bind(list);
 	list.REF_EVENT_onmouseup = list.EVENT_onmouseup.bind(list);
 	list.REF_EVENT_onmousemove = list.EVENT_onmousemove.bind(list);
 	list.REF_EVENT_onmouseover = list.EVENT_onmouseover.bind(list);
 
-	// Events
+	/** add events */
 	util.addEvent(document, "mousedown", list.REF_EVENT_onmousedown);
 	util.addEvent(document, "mouseup", list.REF_EVENT_onmouseup);
 
-	//ADD A CONTEXT MENU
-	var hasDot = /\.+/gi;
-	var btnAddCard = TEXT.LIST_btnAddCard;
-	if(hasDot.test(btnAddCard)){
-		btnAddCard = btnAddCard.replace(hasDot, "");
-	}
-	ContextMenu.add(list, [btnAddCard, TEXT.LIST_btnRemove], true)
+	/** add the context menu */
+	ContextMenu.add(list, 
+		{label: function(){ return TEXT["Add a card"] }, action: list.addCard.bind(list)},
+		{label: function(){ return TEXT["Remove the list"] }, action: list.remove.bind(list)}
+	)
 
 	return list;
-}
-/**
- * @memberof List.prototype
- */
-List.prototype.setClickDuration = function(milliseconds){
-	this.clickDuration = milliseconds;
-	this.labelHead.clickDuration = this.clickDuration - 1;
-}
-
-/**
- * @memberof List.prototype
- */
-List.prototype.destructor = function(){
-	this.parentNode.removeChild(this);
-	List.counter--;
 }
 
 /**
@@ -139,9 +116,9 @@ List.prototype.addCard = function(cardOrBool, bool){
 	if(typeof(cardOrBool) != "undefined" && typeof(cardOrBool) != "boolean"){
 		card = cardOrBool;
 	}else{
-		card = new Card();
+		card = new Card(this);
 	}
-
+	
 	if(typeof(cardOrBool) != "undefined" && typeof(cardOrBool) != "boolean"){
 		var childs = this.cardZone.childNodes;
 		for(var i = 0; i < childs.length; i++){
@@ -155,19 +132,17 @@ List.prototype.addCard = function(cardOrBool, bool){
 		this.cardZone.appendChild(card);
 		card.setEditable(editable);
 	}
-	card.setParentList(this);
 
 	var index = this.cardList.length;
 	this.cardList[index] = card;
-
-	return card; // POUR DEBUG
+	card.cardText.focus();
 }
 
 /**
  * @memberof List.prototype
  */
 List.prototype.removeCard = function(card){
-	// We remove the card from the array
+	/** remove the card from the array */
 	for(var element in this.cardList){
 		if(this.cardList[element] == card){
 			this.cardList.splice(element,1);
@@ -179,11 +154,19 @@ List.prototype.removeCard = function(card){
  * @memberof List.prototype
  */
 List.prototype.remove = function(){
+	/** remove the HTMLElement */
 	this.parentNode.removeChild(this);
+	
+	/** remove the context menu */
+	ContextMenu.remove(this)
+	
+	/** decrement the counter */
+	List.counter--;
 }
 
 /**
  * @memberof List.prototype
+ * @event
  */
 List.prototype.EVENT_onmousedown = function(event){
 	var target = event.target || event.srcElement;
@@ -200,90 +183,77 @@ List.prototype.EVENT_onmousedown = function(event){
 			var that = this;
 			this.clicked = true;
 
-			// On emp�che le comportement par d�faut
+			/** Prevent the default behavior */
 			event.returnValue = false;
 			if(event.preventDefault){
 				event.preventDefault();
 			}
 
-			setTimeout(function(){if(that.clicked){that.EVENT_movelist(event)}}, 121);
+			this.dragged = true;
+			this.style.zIndex = 99;
+
+			/** We remove the "onmousedown" event */
+			util.removeEvent(document, "mousedown", this.REF_EVENT_onmousedown);
+
+			/** We add the "onmousemove" event */
+			util.addEvent(document, "mousemove", this.REF_EVENT_onmousemove);
+
+			// On calcul la position de la souris dans l'objet afin de la fixer � l'endroit o� elle le saisie en enregistrant le calcul dans les variable "decal".
+			var mouseX = event.clientX + document.documentElement.scrollLeft + document.body.scrollLeft;
+			var mouseY = event.clientY + document.documentElement.scrollTop + document.body.scrollTop;
+
+			/** Calculate the offsets */
+			var elementX = 0;
+			var elementY = 0;
+			var element = this;
+			do{
+				elementX += element.offsetLeft;
+				elementY += element.offsetTop;
+				element = element.offsetParent;
+			}while(element && util.getStyle(element, 'position') != 'absolute'  && util.getStyle(element, 'position') != 'fixed');
+
+			this.offsetX += mouseX - elementX;
+			this.offsetY += mouseY - elementY;
+
+			/** Create the drop zone */
+			this.dropZone = document.createElement("div");
+			this.dropZone.style.height = util.getStyle(this, "height");
+			this.dropZone.style.width = util.getStyle(this, "width");
+			this.dropZone.style.float = "left";
+			this.dropZone.className = "list-dropZone";
+			this.dropZone.position = this.position;
+			this.dropZone.setPosition = function(newPosition){ that.dropZone.position = newPosition; }
+			this.parentNode.insertBefore(this.dropZone, this);
+			
+			/** turn the list in absolute position */
+			this.style.left = elementX - parseFloat(util.getStyle(this, "margin-left")) + 'px';
+			this.style.top = elementY - parseFloat(util.getStyle(this, "margin-top")) + 'px';
+			this.style.width = this.offsetWidth + "px";
+			this.style.position = "absolute";
+			this.className = "list-dragged";
+			
+			/** We create the masks */
+			List.createMask();
+
+			/** We add the "onmouseover" event */
+			util.addEvent(document, "mouseover", this.REF_EVENT_onmouseover);
 		}
 	}
 }
 
 /**
  * @memberof List.prototype
- */
-List.prototype.EVENT_movelist = function(event){
-	var target = event.target || event.srcElement;
-
-	this.dragged = true;
-	this.style.zIndex = 99;
-
-	// We remove the "onmousedown" event
-	util.removeEvent(document, "mousedown", this.REF_EVENT_onmousedown);
-
-	// We add the "onmousemove" event
-	util.addEvent(document, "mousemove", this.REF_EVENT_onmousemove);
-
-	// Prevent the default behavior
-	event.returnValue = false;
-	if(event.preventDefault){
-		event.preventDefault();
-	}
-
-	// On calcul la position de la souris dans l'objet afin de la fixer � l'endroit o� elle le saisie en enregistrant le calcul dans les variable "decal".
-	var mouseX = event.clientX + document.documentElement.scrollLeft + document.body.scrollLeft;
-	var mouseY = event.clientY + document.documentElement.scrollTop + document.body.scrollTop;
-
-	// On calcul les el�ments ext�rieurs � l'objet
-	var elementX = 0;
-	var elementY = 0;
-	var element = this;
-	do{
-		elementX += element.offsetLeft;
-		elementY += element.offsetTop;
-		element = element.offsetParent;
-	}while(element && util.getStyle(element, 'position') != 'absolute'  && util.getStyle(element, 'position') != 'fixed');
-
-	this.decalX += mouseX - elementX;
-	this.decalY += mouseY - elementY;
-
-	//On cr�e la zone de collage
-	this.dropZone = document.createElement("div");
-	this.dropZone.style.height = util.getStyle(this, "height");
-	this.dropZone.style.width = util.getStyle(this, "width");
-	this.dropZone.style.float = "left";
-	this.dropZone.className = "list-dropZone";
-	this.dropZone.position = this.position;
-	this.dropZone.setPosition = function(newPosition){ that.dropZone.position = newPosition; }
-	this.parentNode.insertBefore(this.dropZone, this);
-
-	// On transforme l'objet parent en position absolute
-	this.style.left = elementX - 6 + 'px';
-	this.style.top = elementY + 'px';
-	this.style.position = "absolute";
-	this.className = "list-dragged";
-
-	// On cr�e tous les masks
-	List.createMask();
-
-	// We add the "onmouseover" event
-	util.addEvent(document, "mouseover", this.REF_EVENT_onmouseover);
-}
-
-/**
- * @memberof List.prototype
+ * @event
  */
 List.prototype.EVENT_onmousemove = function(event){
 	if(this.dragged){
-		// On r�cup�re la position de la souris
+		// We get the mouse position
 		var x = event.clientX + (document.documentElement.scrollLeft + document.body.scrollLeft);
 		var y = event.clientY + (document.documentElement.scrollTop + document.body.scrollTop);
 
-		// On applique les diff�rents d�calages
-		x -= this.decalX;
-		y -= this.decalY;
+		// Apply different offsets
+		x -= this.offsetX;
+		y -= this.offsetY;
 
 		this.style.left = x + 'px';
 		this.style.top = y + 'px';
@@ -292,17 +262,10 @@ List.prototype.EVENT_onmousemove = function(event){
 
 /**
  * @memberof List.prototype
+ * @event
  */
 List.prototype.EVENT_onmouseup = function(event){
 	var target = event.target || event.srcElement;
-
-	//------  -BRICOLAGE-  ------
-	var hasDot = /\.+/gi;
-	var btnAddCard = TEXT.LIST_btnAddCard;
-	if(hasDot.test(btnAddCard)){
-		btnAddCard = btnAddCard.replace(hasDot, "");
-	}
-	//---------------------------
 
 	if(!event.which && event.button){ // Firefox, Chrome, etc...
 		var button = event.button;
@@ -319,8 +282,8 @@ List.prototype.EVENT_onmouseup = function(event){
 
 		// On remet les attributs � 0
 		this.dragged = false;
-		this.decalX = 0;
-		this.decalY = 0;
+		this.offsetX = 0;
+		this.offsetY = 0;
 
 		// We remove the "onmouseover" event
 		util.removeEvent(document, "mouseover", this.REF_EVENT_onmouseover);
@@ -339,15 +302,8 @@ List.prototype.EVENT_onmouseup = function(event){
 		this.clicked = false;
 	}
 
-	if(button == 1 && (target == this.btnFooter || (target == ContextMenu.btn(btnAddCard) && (ContextMenu.target == this || util.hasParent(ContextMenu.target, this))))){
-		var card = this.addCard();
-		card.cardText.focus();
-		ContextMenu.remove();
-	}
-
-	if(target == ContextMenu.btn(TEXT.LIST_btnRemove) && (ContextMenu.target == this || util.hasParent(ContextMenu.target, this))){
-		this.remove();
-		ContextMenu.remove();
+	if(button == 1 && target == this.btnFooter){
+		this.addCard();
 	}
 }
 
@@ -360,18 +316,18 @@ List.prototype.EVENT_onmouseover = function(event){
 
 	if(maskTarget.className == "list-mask"){
 
-		// On enregistre la position de la liste qu'on a survol�e
+		/** the rollover position is recorded */
 		var targetPos = maskTarget.hiddenList.position;
 
-		// Calcul de l'�cart entre les listes.
-		var ecart = targetPos - this.position;
+		/** calculate the difference between lists */
+		var difference = targetPos - this.position;
 
 		/*
 			On insert la list dragg�e apr�s la liste survol�e
 			si la position de la liste survol�e est sup�rieure
 			� celle dragg�.
 		*/
-		if(ecart > 0){
+		if(difference > 0){
 			maskTarget.parentNode.insertBefore(this.dropZone, maskTarget.hiddenList.nextSibling);
 
 			// On diminue de 1 la position de toutes les listes positionn�es avant si �a n'a pas �tait un �change entre deux listes qui �taient c�te � c�te.
@@ -383,38 +339,37 @@ List.prototype.EVENT_onmouseover = function(event){
 						allMask[i].hiddenList.setPosition(listPosition - 1);
 					}
 				}
-			}else{ //Sinon on change la position de la cible et le style de son mask.
+			}else{ // else we change the position number of the target and its mask style.
 				maskTarget.hiddenList.setPosition(this.position);
 			}
 		}
 
-		/*
+		/**
 			On insert la list dragg�e avant la liste survol�e
 			si la position de la liste survol�e est inf�rieure
 			� celle dragg�.
 		*/
-		if(ecart < 0){
+		if(difference < 0){
 			maskTarget.parentNode.insertBefore(this.dropZone, maskTarget.hiddenList);
 
 			// On red�fini les positions de toutes les listes si �a n'a pas �tait un �change entre deux listes qui �taient c�te � c�te.
 			if(targetPos != this.position - 1){
-				var allMask = document.getElementsByClassName("list-mask"); //On r�cup�re tous les mask.
+				var allMask = document.getElementsByClassName("list-mask"); // get all the masks
 				for(var i = 0; i < allMask.length; i++){
 					var listPosition = allMask[i].hiddenList.position;
 					if(listPosition >= targetPos && listPosition != List.counter){
 						allMask[i].hiddenList.setPosition(listPosition + 1);
 					}
 				}
-			}else{ //Sinon on change la position de la cible et le style de son mask.
+			}else{ // else we change the position number of the target and its mask style.
 				maskTarget.hiddenList.setPosition(this.position);
-
 			}
 		}
 
-		// On change la position de la liste dragg�
+		/** change the position number of the dragged list */
 		this.setPosition(targetPos);
 
-		// We set the style of the mask
+		/** set the mask style */
 		maskTarget.style.left = maskTarget.hiddenList.offsetLeft + "px";
 		maskTarget.style.top = maskTarget.hiddenList.offsetTop + "px";
 	}
@@ -435,9 +390,9 @@ List.prototype.cardNumber = function(){
 	return count;
 }
 
-/******************************************
-		STATICS ATTRIBUTES AND METHODES
-******************************************/
+/*****************************************\
+		STATICS ATTRIBUTES AND METHODS
+\*****************************************/
 
 /**
  * @memberof List
@@ -455,7 +410,7 @@ List.createMask = function(emptyListOrList){
 	for(var i = 0; i<list.length; i++){
 		var create = true;
 
-		// We look for the empty lists
+		/** We look for the empty lists */
 		if(emptyList){
 			var childs = list[i].childNodes;
 			for(var j = 0; j<childs.length; j++){
@@ -468,14 +423,14 @@ List.createMask = function(emptyListOrList){
 			}
 		}
 
-		// We check if it's the given list
+		/** We check if it's the given list */
 		if(typeof(givenList) != "undefined"){
 			if(list[i] != givenList){
 				create = false;
 			}
 		}
 
-		// We check if there is not already a mask
+		/** We check if there is not already a mask */
 		if(create){
 			var allMask = document.getElementsByClassName("list-mask");
 			for(var j = 0; j<allMask.length; j++){
@@ -501,7 +456,7 @@ List.createMask = function(emptyListOrList){
 				mask.style.background = "rgba(255, 120, 90, 0.45)";
 			}
 
-			mask.style.zIndex = 100; //A EFFACER
+			mask.style.zIndex = 100;
 			document.getElementsByClassName("Body")[0].appendChild(mask);
 		}
 	}
@@ -531,9 +486,10 @@ List.removeMask = function(){
 }
 
 /**
+ * Instance counter
  * @memberof List
  */
-List.counter = 0; // Instance counter
+List.counter = 0;
 
 /**
  * @memberof List

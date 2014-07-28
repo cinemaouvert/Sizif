@@ -22,8 +22,8 @@ module.exports = function(grunt) {
 		prefix + 'Util.js',
 		prefix + 'Setting.js',
 		prefix + 'Translate.js',
-		prefix + 'Label.js',
 		prefix + 'ContextMenu.js',
+		prefix + 'ListTitle.js',
 		prefix + 'List.js',
 		prefix + 'Card.js',
 		prefix + "main.js"

@@ -1,7 +1,7 @@
 {
-  "name": "Trello_like",
-  "version": "0.0.0",
-  "description": "Permet la gestion d'un kanban board",
+  "name": "free-kanban",
+  "version": "0.0.5",
+  "description": "Allow to handle an open source kanban board",
   "main": "built.js",
   "dependencies": {},
   "devDependencies": {
@@ -16,7 +16,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "Z:/1-Activite/1.8-Programmation/Web/www/Trello_like"
+    "url": "Z:/1-Activite/1.8-Programmation/Web/www/GitHub/free-kanban"
   },
   "author": "Yohann_Vioujard",
   "license": "ISC"

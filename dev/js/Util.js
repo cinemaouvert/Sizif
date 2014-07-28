@@ -186,16 +186,24 @@ util.hasParent = function(supposedChild, supposedParentOrProp, supposedParentOrV
 			if(parent == supposedParent){
 				return true;
 			}else{
-				parent = parent.parentNode;
+				if(parent != null){
+					parent = parent.parentNode;
+				}else{
+					return false;
+				}
 			}
 		}while(parent);
 	}else if(typeof(supposedChild) != "undefined" && typeof(prop) != "undefined"){
-		var parent = supposedChild.parentNode;
+		var parent = supposedChild;
 		do{
 			if(parent[prop] == value){
 				return true;
 			}else{
-				parent = parent.parentNode;
+				if(parent != null){
+					parent = parent.parentNode;
+				}else{
+					return false;
+				}
 			}
 		}while(parent);
 	}else{

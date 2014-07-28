@@ -1,6 +1,11 @@
 {
-	"LIST_defaultTitle" : "Nueva lista",
-	"LIST_btnAddCard" : "Añadir una tarjeta...",
-	"LIST_btnRemove" : "Eliminar la lista",
-	"CARD_defaultTitle" : "Nueva tarjeta"
+	"To do"            : "Cosas que hacer",
+	"In progress"      : "En curso",
+	"Done"             : "Terminado",
+	"New list"         : "Nueva lista",
+	"Add a card"       : "Añadir una tarjeta",
+	"Remove the list"  : "Eliminar la lista",
+	"New card"         : "Nueva tarjeta",
+	"Undo"             : "Deshacer",
+	"Redo"             : "Rehacer"
 }

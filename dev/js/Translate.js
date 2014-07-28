@@ -1,6 +1,10 @@
-//SCRIPT QUI GERE LES TRADUCTIONS
-
-//On charge le JSON de la langue définie par LANG et on crée l'objet TEXT le contenant
+/**
+ * @file This file manages translations and provides a function which allows the user to change the lang
+ * of the interface.
+ * @author Yohann Vioujard
+ */
+ 
+/** download lang defined by the LANG variable and create the TEXT object */
 if(localStorage && !localStorage.getItem("lang-" + SETTING.lang)){
 	util.getJSON("lang/" + SETTING.lang + ".json", function(response){
 		TEXT = JSON.parse(response);
@@ -18,11 +22,11 @@ if(localStorage && !localStorage.getItem("lang-" + SETTING.lang)){
 //On ajoute la langue au text
 TEXT.lang = SETTING.lang;
 
-checkCleanText(TEXT);
+checkText(TEXT);
 
-// We check if the TEXT is clean to be used
-function checkCleanText(text){
-	var listProperty = ["LIST_defaultTitle", "LIST_btnAddCard", "LIST_btnRemove", "CARD_defaultTitle"];
+// We check if the TEXT can be used
+function checkText(text){
+	var listProperty = ["New list", "Add a card", "Remove the list", "New card"];
 	
 	for(var i = 0; i<listProperty.length; i++){
 		if(typeof(text[listProperty[i]]) == "undefined"){
@@ -62,10 +66,13 @@ function changeLang(newLang){
 			}
 			
 			TEXT.lang = newLang;
-			checkCleanText(TEXT);
+			checkText(TEXT);
 		
-		//On liste tous les éléments traductibles 
-		function listingTranslableObject(object){
+		/**
+		 * List all the translatable elements
+		 * @function
+		 */
+		function listingTranslatableObject(object){
 			if(typeof(object) == "undefined"){
 				var object = document.body; 
 			}
@@ -91,7 +98,7 @@ function changeLang(newLang){
 								if(object[child].hasAttribute("data-translatable") && object[child].getAttribute("data-translatable")){
 									listTrObject.push(object[child]);
 								}else{
-									listingTranslableObject(object[child]);
+									listingTranslatableObject(object[child]);
 								}
 							}
 						}
@@ -100,17 +107,19 @@ function changeLang(newLang){
 			}
 		}
 		
-		listingTranslableObject();
+		listingTranslatableObject();
 		
 		//On compare le contenu de tous les éléments traductibles avec l'ancienne langue, si ils se ressemblent, on les met dans la nouvelle langue
 		for(var obj in listTrObject){
 			if(typeof(listTrObject[obj]) != "undefined" && listTrObject[obj].nodeType == 1){
 				var text = listTrObject[obj].textContent;
-				for(var string in oldTEXT){
-					if(oldTEXT[string] == text && typeof(TEXT[string]) != "undefined"){
-						listTrObject[obj].textContent = TEXT[string];
-						listTrObject[obj].innerHTML = TEXT[string];
-						listTrObject[obj].text = TEXT[string];
+				for(var element in oldTEXT){
+					var oldStr = oldTEXT[element];
+					if(text.search(oldStr) != -1){
+						var newStr = text.replace(oldStr, TEXT[element]);
+						listTrObject[obj].textContent = newStr;
+						listTrObject[obj].innerHTML = newStr;
+						listTrObject[obj].text = newStr;
 					}
 				}
 			}

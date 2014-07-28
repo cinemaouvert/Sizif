@@ -186,16 +186,24 @@ util.hasParent = function(supposedChild, supposedParentOrProp, supposedParentOrV
 			if(parent == supposedParent){
 				return true;
 			}else{
-				parent = parent.parentNode;
+				if(parent != null){
+					parent = parent.parentNode;
+				}else{
+					return false;
+				}
 			}
 		}while(parent);
 	}else if(typeof(supposedChild) != "undefined" && typeof(prop) != "undefined"){
-		var parent = supposedChild.parentNode;
+		var parent = supposedChild;
 		do{
 			if(parent[prop] == value){
 				return true;
 			}else{
-				parent = parent.parentNode;
+				if(parent != null){
+					parent = parent.parentNode;
+				}else{
+					return false;
+				}
 			}
 		}while(parent);
 	}else{
@@ -389,9 +397,13 @@ var SETTING,
 		window.applicationCache.update();
 	}
 
-})();//SCRIPT QUI GERE LES TRADUCTIONS
-
-//On charge le JSON de la langue d�finie par LANG et on cr�e l'objet TEXT le contenant
+})();/**
+ * @file This file manages translations and provides a function which allows the user to change the lang
+ * of the interface.
+ * @author Yohann Vioujard
+ */
+ 
+/** download lang defined by the LANG variable and create the TEXT object */
 if(localStorage && !localStorage.getItem("lang-" + SETTING.lang)){
 	util.getJSON("lang/" + SETTING.lang + ".json", function(response){
 		TEXT = JSON.parse(response);
@@ -409,11 +421,11 @@ if(localStorage && !localStorage.getItem("lang-" + SETTING.lang)){
 //On ajoute la langue au text
 TEXT.lang = SETTING.lang;
 
-checkCleanText(TEXT);
+checkText(TEXT);
 
-// We check if the TEXT is clean to be used
-function checkCleanText(text){
-	var listProperty = ["LIST_defaultTitle", "LIST_btnAddCard", "LIST_btnRemove", "CARD_defaultTitle"];
+// We check if the TEXT can be used
+function checkText(text){
+	var listProperty = ["New list", "Add a card", "Remove the list", "New card"];
 	
 	for(var i = 0; i<listProperty.length; i++){
 		if(typeof(text[listProperty[i]]) == "undefined"){
@@ -453,10 +465,13 @@ function changeLang(newLang){
 			}
 			
 			TEXT.lang = newLang;
-			checkCleanText(TEXT);
+			checkText(TEXT);
 		
-		//On liste tous les �l�ments traductibles 
-		function listingTranslableObject(object){
+		/**
+		 * List all the translatable elements
+		 * @function
+		 */
+		function listingTranslatableObject(object){
 			if(typeof(object) == "undefined"){
 				var object = document.body; 
 			}
@@ -482,7 +497,7 @@ function changeLang(newLang){
 								if(object[child].hasAttribute("data-translatable") && object[child].getAttribute("data-translatable")){
 									listTrObject.push(object[child]);
 								}else{
-									listingTranslableObject(object[child]);
+									listingTranslatableObject(object[child]);
 								}
 							}
 						}
@@ -491,34 +506,254 @@ function changeLang(newLang){
 			}
 		}
 		
-		listingTranslableObject();
+		listingTranslatableObject();
 		
 		//On compare le contenu de tous les �l�ments traductibles avec l'ancienne langue, si ils se ressemblent, on les met dans la nouvelle langue
 		for(var obj in listTrObject){
 			if(typeof(listTrObject[obj]) != "undefined" && listTrObject[obj].nodeType == 1){
 				var text = listTrObject[obj].textContent;
-				for(var string in oldTEXT){
-					if(oldTEXT[string] == text && typeof(TEXT[string]) != "undefined"){
-						listTrObject[obj].textContent = TEXT[string];
-						listTrObject[obj].innerHTML = TEXT[string];
-						listTrObject[obj].text = TEXT[string];
+				for(var element in oldTEXT){
+					var oldStr = oldTEXT[element];
+					if(text.search(oldStr) != -1){
+						var newStr = text.replace(oldStr, TEXT[element]);
+						listTrObject[obj].textContent = newStr;
+						listTrObject[obj].innerHTML = newStr;
+						listTrObject[obj].text = newStr;
 					}
 				}
 			}
 		}
 	}
 };/**
- * Allows to create labels with advanced properties.
- * NOTE: 
- *		Cette version des label ne fait pas augmenter la taille de l'input
- *		en fonction de ce qui est tap�. La taille est fixe.
- *
- * @constructor
- * @param {string} [text] - The text contained in the label.
- * @param {string} [tag] - The tag used to create the label.
- * @returns {object} container - The DOM object representing the label
+ * @file This file manages the context menu event.
+ * In use the context menu can be hidden manually using the ContextMenu.hide method.
+ * If the target to which you are assigned a context menu is destroyed, you must remove
+ * its context menu using the ContextMenu.remove method. It takes the relevant target
+ * as argument. 
+ * @todo créer une zone de raccourci
+ * @author Yohann Vioujard
  */
-function Label(text, tag){
+
+(function(){
+	ContextMenu = {};
+	ContextMenu.visible = false;
+	ContextMenu.target; // The html element targeted by the context menu.
+	var setting = [];
+
+	util.addEvent(document, "contextmenu", oncontextmenu);
+	util.addEvent(document, "mousedown", onmousedown);
+	util.addEvent(document, "mouseup", onmouseup);
+
+	function oncontextmenu(event){
+		var target = event.target || event.srcElement;
+
+		if(target["className"] == "list" || util.hasParent(target, "className", "list")){
+			ContextMenu.target = target;
+
+			// On empeche le comportement par d�faut
+			event.returnValue = false;
+			if(event.preventDefault){
+				event.preventDefault();
+			}
+
+			var mouseX = event.clientX + document.documentElement.scrollLeft + document.body.scrollLeft;
+			var mouseY = event.clientY + document.documentElement.scrollTop + document.body.scrollTop;
+
+			create(mouseX, mouseY);
+		}
+	}
+
+	/**
+	 * Manage the onmousedown event for the context menu
+	 * @event
+	 */
+	function onmousedown(event){
+		var target = event.target || event.srcElement;
+
+		if(ContextMenu.visible && target != ContextMenu.dom && !util.hasParent(target, ContextMenu.dom)){
+			ContextMenu.hide();
+			return;
+		}
+
+		// We prevent the context menu's buttons to be selected
+		if(target.className == "ContextMenu-btn"){
+			event.returnValue = false;
+			if(event.preventDefault){
+				event.preventDefault();
+			}
+		}
+	}
+
+	/**
+	 * Manage the onmouseup event for the context menu
+	 * @event
+	 */
+	function onmouseup(event){
+		if(ContextMenu.visible){
+			var target = event.target || event.srcElement;
+
+			if(target.className == "ContextMenu-btn"){
+				for(var i = 0; i < setting.length; i++){
+					if(ContextMenu.target == setting[i].target || util.hasParent(ContextMenu.target, setting[i].target)){
+						
+						var content = setting[i].content;
+						for(var j = 0; j < content.length; j++){
+							var label = content[j].label;
+							if(label instanceof Function){
+								label = label();
+							}
+							
+							if(target.textContent == label){
+								/** 
+								 * Apply the defined action
+								 * then remove the context menu.
+								 */
+								content[j].action();
+								ContextMenu.hide();
+								return;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+    /**
+     * create the context menu
+     * @function create
+	 * @private
+     */
+	function create(mouseX, mouseY){
+		for(var i = 0; i < setting.length; i++){
+			var uCanCreate = true;
+
+			if(util.hasParent(ContextMenu.target, setting[i].target)){
+				// Check if the parent isn't defined too, manage conflicts
+				for(var k = 0; k < setting.length; k++){
+					if(setting[k].target == ContextMenu.target){
+						uCanCreate = false;
+					}else if(setting[k].target != setting[i].target
+						&& util.hasParent(setting[k].target, setting[i].target)
+						&& (util.hasParent(ContextMenu.target, setting[k].target)
+						|| setting[k].target == ContextMenu.target)){
+						uCanCreate = false;
+					}
+				}
+			}else if(ContextMenu.target != setting[i].target){
+				uCanCreate = false;
+			}
+			if(uCanCreate){
+				/** built the context menu */
+				ContextMenu.visible = true;
+
+				ContextMenu.dom = document.createElement("div");
+				ContextMenu.dom.className = "ContextMenu";
+				ContextMenu.dom.style.position = "fixed";
+				ContextMenu.dom.style.left = mouseX + "px";
+				ContextMenu.dom.style.top = mouseY + "px";
+				document.body.appendChild(ContextMenu.dom);
+
+				var content = setting[i].content
+				for(var j = 0; j < content.length; j++){
+					var label = content[j].label;
+					if(label instanceof Function){
+						label = label();
+					}
+				
+					var newBtn = document.createElement("div");
+					newBtn.className = "ContextMenu-btn";
+					newBtn.setAttribute("data-translatable", true);
+					newBtn.innerHTML = label;
+					ContextMenu.dom.appendChild(newBtn);
+				}
+			}
+		}
+	}
+
+  /**
+   * Add a context menu
+   * There's a content object by label and as much content object as you want
+   * @function ContextMenu.add
+   * @param {object} target - the target of the context menu
+   * @param {object} content - An object with the label of an action and a reference to the function which applies the action.
+   * @param {string|object} content.label - The action name, it can be a function which recovers the value of a variable, it just must return a string.
+   * @param {object} content.action - A reference to a function
+   * @todo Manage the case that there's non content send by the user.
+   */
+   ContextMenu.add = function(){
+		if(typeof(arguments[0]) != "object"){
+			throw "TypeError: the first argument in ContextMenu.add must be an HTMLElement.";
+		}
+		var target = arguments[0];
+		var content = [];
+		
+		for(var i = 0; i< arguments.length; i++){
+			if(i != 0){
+				content.push(arguments[i]);
+			}
+		}
+		
+		setting.push({target: target, content: content})
+   }
+
+	/**
+	 * Remove a context menu
+	 * @function ContextMenu.remove
+	 * @param {object} target - the target of the context menu
+	 */
+	ContextMenu.remove = function(target){
+		if(typeof(target) == "undefined" || typeof(target) == "string"){
+			throw "The first argument in ContextMenu.remove must be an HTMLElement.";
+		}
+		
+		for(var i = 0; i< setting.length; i++){
+			if(setting[i].target == target){
+				setting.splice(i, 1);
+			}
+		}
+	}
+   
+    /**
+     * Remove the context menu if it's visible.
+     * @function ContextMenu.hide
+     */
+	ContextMenu.hide = function(){
+		if(ContextMenu.visible){
+			ContextMenu.visible = false;
+			ContextMenu.target = "undefined";
+			ContextMenu.dom.parentNode.removeChild(ContextMenu.dom);
+		}
+	}
+
+    /**
+     * Return the html element of the button which contains the given text
+     * @function ContextMenu.btn
+     * @return {object} The html element containing the text send in parameter.
+     */
+    ContextMenu.btn = function(string){
+		if(ContextMenu.visible){
+			var childs = ContextMenu.dom.childNodes;
+			for(var i = 0; i < childs.length; i++){
+				if(childs[i].textContent == string){
+					return childs[i];
+				}
+			}
+		}else{
+			return false;
+		}
+    }
+	
+})()
+;/**
+ * Allows to create titles with advanced properties.
+ * Used by List.
+ * @constructor
+ * @param {string} [text] - The text contained in the ListTitle.
+ * @param {string} [tag] - The tag used to create the ListTitle.
+ * @returns {object} container - The DOM object representing the ListTitle
+ */
+function ListTitle(text, tag){
 	if(typeof(tag) == "undefined"){
 		this.tag = "p";
 	}else{
@@ -532,8 +767,6 @@ function Label(text, tag){
 	this.text = "";
 	this.inputEditable = false;
 	this.isInputEdited = false;
-	this.startClick = 0;
-	this.clickDuration = 100
 	this.listIntagAttribute = [];
 	
 	//On cr�e l'objet
@@ -554,7 +787,7 @@ function Label(text, tag){
 	
 	// References on the functions which allow to handle the animations
 	container.REF_EVENT_onmousedown = container.EVENT_onmousedown.bind(container);
-	container.REF_EVENT_onmouseup = container.EVENT_onmouseup.bind(container);
+	container.REF_EVENT_ondblclick = container.EVENT_ondblclick.bind(container);
 	container.REF_EVENT_onkeydown = container.EVENT_onkeydown.bind(container);
 	container.REF_EVENT_writing = container.EVENT_writing.bind(container);
 	
@@ -565,20 +798,20 @@ function Label(text, tag){
 /**
  * Getter for the text attribute.
  * @function getText
- * @memberof Label.prototype
+ * @memberof ListTitle.prototype
  * @returns {string}  
  */
-Label.prototype.getText = function(){
+ListTitle.prototype.getText = function(){
 	return this.text;
 }
 
 /**
  * Setter for the text attribute.
  * @function setText
- * @memberof Label.prototype
+ * @memberof ListTitle.prototype
  * @param {string} newText
  */
-Label.prototype.setText = function(newText){
+ListTitle.prototype.setText = function(newText){
 	var listAttributes = this.intag.attributes;
 	this.text = newText;
 	this.removeChild(this.intag);
@@ -595,24 +828,24 @@ Label.prototype.setText = function(newText){
 }
 
 /**
- * @memberof Label.prototype
+ * @memberof ListTitle.prototype
  */
-Label.prototype.setAttribute = function(attribute, value){
+ListTitle.prototype.setAttribute = function(attribute, value){
 	this.intag.setAttribute(attribute, value);
 }
 
 /**
  * Standard Editable
- * @memberof Label.prototype
+ * @memberof ListTitle.prototype
  */
-Label.prototype.isStandardEditable = function(){
+ListTitle.prototype.isStandardEditable = function(){
 	return this.contentEditable;
 }
 
 /**
- * @memberof Label.prototype
+ * @memberof ListTitle.prototype
  */
-Label.prototype.setStandardEditable = function(bool){
+ListTitle.prototype.setStandardEditable = function(bool){
 	if(bool){
 		this.contentEditable = true;
 	}else{
@@ -624,20 +857,20 @@ Label.prototype.setStandardEditable = function(bool){
 
 /**
  * Input Editable
- * @memberof Label.prototype
+ * @memberof ListTitle.prototype
  */
-Label.prototype.isInputEditable = function(){
+ListTitle.prototype.isInputEditable = function(){
 	return this.inputEditable;
 }
 
 /**
- * @memberof Label.prototype
+ * @memberof ListTitle.prototype
  */
-Label.prototype.setInputEditable = function(bool){
+ListTitle.prototype.setInputEditable = function(bool){
 	if(bool){
 		this.inputEditable = true;
 		util.addEvent(document, 'mousedown', this.REF_EVENT_onmousedown);
-		util.addEvent(document, 'mouseup', this.REF_EVENT_onmouseup);
+		util.addEvent(document, 'dblclick', this.REF_EVENT_ondblclick);
 	}else{
 		if(this.inputEditable){
 			this.inputEditable = false;
@@ -647,9 +880,9 @@ Label.prototype.setInputEditable = function(bool){
 }
 
 /**
- * @memberof Label.prototype
+ * @memberof ListTitle.prototype
  */
-Label.prototype.EVENT_onmousedown = function(event){
+ListTitle.prototype.EVENT_onmousedown = function(event){
 	var target = event.target || event.srcElement;
 
 	if(!event.which && event.button){ // Firefox, Chrome, etc...
@@ -658,9 +891,7 @@ Label.prototype.EVENT_onmousedown = function(event){
 		var button = event.which;
 	}	
 	
-	if(button == 1 && (target == this || util.hasParent(target, this))){
-		this.startClick = new Date();
-	}else if(button == 1 && this.isInputEdited){
+	if(button == 1 && this.isInputEdited){
 		//On emp�che le comportement par d�faut de l'�v�nement
 		event.returnValue = false; 
 		if(event.preventDefault) event.preventDefault();
@@ -669,16 +900,10 @@ Label.prototype.EVENT_onmousedown = function(event){
 		
 		// We remove the "onkeydown" events
 		util.removeEvent(document, 'keydown', this.REF_EVENT_onkeydown);
-		
-		// We add the "onmouseup" event
-		util.addEvent(document, 'mouseup', this.REF_EVENT_onmouseup);
 	}
 }
 
-/**
- * @memberof Label.prototype
- */
-Label.prototype.EVENT_onmouseup = function(event){
+ListTitle.prototype.EVENT_ondblclick = function(event){
 	var target = event.target || event.srcElement;
 	
 	if(!event.which && event.button){ // Firefox, Chrome, etc...
@@ -688,30 +913,18 @@ Label.prototype.EVENT_onmouseup = function(event){
 	}
 
 	if(button == 1 && (target == this || util.hasParent(target, this))){
-		var now = new Date();
-		var currentClickDuration = now - this.startClick;
-
-		if(currentClickDuration < this.clickDuration){
-			//On emp�che le comportement par d�faut de l'�v�nement
-			event.returnValue = false; 
-			if(event.preventDefault) event.preventDefault();
-			
-			// We remove the event		
-			util.removeEvent(document, 'click', this.REF_EVENT_ondblclick);		
-			
-			//On lance l'edition via un input
-			this.inputEdit();
-			
-			// we add the "onkeydown" event which will allow to restore the label
-			util.addEvent(document, 'keydown', this.REF_EVENT_onkeydown);
-		}
+		//On lance l'edition via un input
+		this.inputEdit();
+		
+		// we add the "onkeydown" event which will allow to restore the ListTitle
+		util.addEvent(document, 'keydown', this.REF_EVENT_onkeydown);
 	}
 }
 
 /**
- * @memberof Label.prototype
+ * @memberof ListTitle.prototype
  */
-Label.prototype.EVENT_onkeydown = function(event){ // On remet tout dans son �tat normal si la touche "Entr�e" a �t� pr�ss�e
+ListTitle.prototype.EVENT_onkeydown = function(event){ // On remet tout dans son �tat normal si la touche "Entr�e" a �t� pr�ss�e
 	if(event.keyCode == 13){
 		var target = event.target || event.srcElement;
 		if(this.isInputEdited){
@@ -728,9 +941,9 @@ Label.prototype.EVENT_onkeydown = function(event){ // On remet tout dans son �
 }
 
 /**
- * @memberof Label.prototype
+ * @memberof ListTitle.prototype
  */
-Label.prototype.inputEdit = function(){
+ListTitle.prototype.inputEdit = function(){
 	if(!this.isInputEdited){
 		this.isInputEdited = true;
 
@@ -757,9 +970,9 @@ Label.prototype.inputEdit = function(){
 
 //NOTE: varie selon le caract�re, � rendre plus pr�cis.
 /**
- * @memberof Label.prototype
+ * @memberof ListTitle.prototype
  */
-Label.prototype.EVENT_writing = function(event){
+ListTitle.prototype.EVENT_writing = function(event){
 	var input = this.intag;		
 	
 	if(this.inputWidth == 0){
@@ -785,9 +998,9 @@ Label.prototype.EVENT_writing = function(event){
 }
 
 /**
- * @memberof Label.prototype
+ * @memberof ListTitle.prototype
  */
-Label.prototype.reset = function(){
+ListTitle.prototype.reset = function(){
 	this.isInputEdited = false;
 
 	//On remet en �tat la balise
@@ -807,9 +1020,9 @@ Label.prototype.reset = function(){
 }
 
 /**
- * @memberof Label.prototype
+ * @memberof ListTitle.prototype
  */
-Label.prototype.inheritStyleInput = function(newInput){
+ListTitle.prototype.inheritStyleInput = function(newInput){
 	var parentNode = this.parentNode;
 	var oldContent = this.intag;
 	var textOldContent = oldContent.firstChild;
@@ -884,165 +1097,6 @@ Label.prototype.inheritStyleInput = function(newInput){
 		newInput.style.textAlign = "justify";
 	}
 };/**
- * @file manage the context menu event
- * The context menu must be removed manually using the ContextMenu.remove method
- * @todo think about adding callback functions to allow the autoremove
- * @todo créer une zone de raccourci
- * @author Yohann Vioujard
- */
-
-(function(){
-  ContextMenu = {};
-  ContextMenu.visible = false;
-  ContextMenu.target; // The html element targeted by the context menu.
-  var setting = [];
-
-  util.addEvent(document, "contextmenu", oncontextmenu);
-  util.addEvent(document, "mousedown", onmousedown);
-  //util.addEvent(document, "mouseup", onmouseup); //AUTOREMOVE
-
-  function oncontextmenu(event){
-    var target = event.target || event.srcElement;
-
-    if(target["className"] == "list" || util.hasParent(target, "className", "list")){
-      ContextMenu.target = target;
-
-      // On empeche le comportement par d�faut
-      event.returnValue = false;
-      if(event.preventDefault){
-        event.preventDefault();
-      }
-
-      var mouseX = event.clientX + document.documentElement.scrollLeft + document.body.scrollLeft;
-      var mouseY = event.clientY + document.documentElement.scrollTop + document.body.scrollTop;
-
-      create(mouseX, mouseY);
-    }
-  }
-
-  function onmousedown(event){
-    var target = event.target || event.srcElement;
-
-    if(ContextMenu.visible && target != ContextMenu.dom && !util.hasParent(target, ContextMenu.dom)){
-      ContextMenu.remove();
-    }
-
-    // We prevent the buttons to the context menu to be selected
-    if(target.className == "list-btnContextMenu"){
-      event.returnValue = false;
-      if(event.preventDefault){
-        event.preventDefault();
-      }
-    }
-  }
-
-  //AUTOREMOVE
-  /*
-  function onmouseup(event){
-    if(ContextMenu.visible){
-      var target = event.target || event.srcElement;
-
-      if(target.className == "list-btnContextMenu"){
-        for(var i = 0; i < setting.length; i++){
-          if(ContextMenu.target == setting[i].target || util.hasParent(ContextMenu.target, setting[i].target)){
-            ContextMenu.remove();
-          }
-        }
-      }
-    }
-  }
-  */
-
-  /**
-   * create the context menu
-   * @function create
-   */
-   function create(mouseX, mouseY){
-     for(var i = 0; i < setting.length; i++){
-       var uCanCreate = true;
-
-       if(util.hasParent(ContextMenu.target, setting[i].target)){
-         // Check if the parent isn't defined too
-         for(var k = 0; k < setting.length; k++){
-           if(setting[k].target == ContextMenu.target){
-             uCanCreate = false;
-           }else if(setting[k].target != setting[i].target
-             && util.hasParent(setting[k].target, setting[i].target)
-             && (util.hasParent(ContextMenu.target, setting[k].target)
-             || setting[k].target == ContextMenu.target)){
-             uCanCreate = false;
-           }
-         }
-       }else if(ContextMenu.target != setting[i].target){
-         uCanCreate = false;
-       }
-
-       if(uCanCreate){
-        // We built the context menu
-        ContextMenu.visible = true;
-
-        ContextMenu.dom = document.createElement("div");
-        ContextMenu.dom.className = "list-contextMenu";
-        ContextMenu.dom.style.position = "fixed";
-        ContextMenu.dom.style.left = mouseX + "px";
-        ContextMenu.dom.style.top = mouseY + "px";
-        document.body.appendChild(ContextMenu.dom);
-
-        var btnList = setting[i].btnList
-        for(var j = 0; j < btnList.length; j++){
-          var newBtn = document.createElement("div");
-          newBtn.className = "list-btnContextMenu";
-          newBtn.setAttribute("data-translatable", true);
-          newBtn.innerHTML = btnList[j];
-          ContextMenu.dom.appendChild(newBtn);
-        }
-      }
-    }
-  }
-
-  /**
-   * Add a context menu setting
-   * @function ContextMenu.add
-   * @param {object} target - the target of the context menu
-   * @param {array} btnList - string list which the describe the menu
-   */
-   ContextMenu.add = function(target, btnList, autoRemove){
-     setting.push({target: target, btnList: btnList, autoRemove: autoRemove})
-   }
-
-  /**
-   * Remove the context menu
-   * @function ContextMenu.remove
-   */
-   ContextMenu.remove = function(){
-     if(ContextMenu.visible){
-       ContextMenu.visible = false;
-       ContextMenu.target = "undefined";
-       ContextMenu.dom.parentNode.removeChild(ContextMenu.dom);
-     }
-   }
-
-   /**
-    * Return the html element of the button which contains the given text
-    * @function ContextMenu.btn
-    * @return {object} The html element containing the text send in parameter.
-    */
-    ContextMenu.btn = function(string){
-      if(typeof(ContextMenu.dom) != "undefined"){
-        var childs = ContextMenu.dom.childNodes;
-        for(var i = 0; i < childs.length; i++){
-          if(childs[i].textContent == string){
-            //console.log(childs[i])
-            return childs[i];
-          }
-        }
-      }else{
-        return false;
-      }
-    }
-
-})()
-;/**
  * Create a list.
  * @constructor
  * @param {string} [title] - The title of the list.
@@ -1053,11 +1107,11 @@ function List(title, textBtnFooter){
 	List.counter++;
 
 	if(typeof(title) == "undefined"){
-		title = TEXT.LIST_defaultTitle;
+		title = TEXT["New list"];
 	}
 
 	if(typeof(textBtnFooter) == "undefined"){
-		textBtnFooter = TEXT.LIST_btnAddCard;
+		textBtnFooter = TEXT["Add a card"] + "...";
 	}
 
 	var list = document.createElement("div");
@@ -1068,7 +1122,7 @@ function List(title, textBtnFooter){
 	listHeader.className = "list-header";
 
 	// title
-	this.labelHead = new Label(title, "h2");
+	this.labelHead = new ListTitle(title, "h2");
 	this.labelHead.style.display = "inline-block";
 
 	// Manage the overflow of the title
@@ -1105,56 +1159,33 @@ function List(title, textBtnFooter){
 
 	this.position = List.counter;
 	this.dragged = false;
-	this.decalX = 0;
-	this.decalY = 0;
+	this.offsetX = 0;
+	this.offsetY = 0;
 	this.clicked = false;
-	this.clickDuration = 115;
 	this.dropZone = 'undefined';
-	this.btnRemove;
-	this.btnAddCard;
 
-	// Attributes used to handle cards
+	/** Attributes used to handle cards */
 	this.cardList = new Array;
-
-	// We set the duration of the click for the label
-	this.labelHead.clickDuration = this.clickDuration - 1;
 
 	util.inherit(list, this);
 
-	// References on the functions which handle the animations
+	/** References to the functions which handle the animations */
 	list.REF_EVENT_onmousedown = list.EVENT_onmousedown.bind(list);
 	list.REF_EVENT_onmouseup = list.EVENT_onmouseup.bind(list);
 	list.REF_EVENT_onmousemove = list.EVENT_onmousemove.bind(list);
 	list.REF_EVENT_onmouseover = list.EVENT_onmouseover.bind(list);
 
-	// Events
+	/** add events */
 	util.addEvent(document, "mousedown", list.REF_EVENT_onmousedown);
 	util.addEvent(document, "mouseup", list.REF_EVENT_onmouseup);
 
-	//ADD A CONTEXT MENU
-	var hasDot = /\.+/gi;
-	var btnAddCard = TEXT.LIST_btnAddCard;
-	if(hasDot.test(btnAddCard)){
-		btnAddCard = btnAddCard.replace(hasDot, "");
-	}
-	ContextMenu.add(list, [btnAddCard, TEXT.LIST_btnRemove], true)
+	/** add the context menu */
+	ContextMenu.add(list, 
+		{label: function(){ return TEXT["Add a card"] }, action: list.addCard.bind(list)},
+		{label: function(){ return TEXT["Remove the list"] }, action: list.remove.bind(list)}
+	)
 
 	return list;
-}
-/**
- * @memberof List.prototype
- */
-List.prototype.setClickDuration = function(milliseconds){
-	this.clickDuration = milliseconds;
-	this.labelHead.clickDuration = this.clickDuration - 1;
-}
-
-/**
- * @memberof List.prototype
- */
-List.prototype.destructor = function(){
-	this.parentNode.removeChild(this);
-	List.counter--;
 }
 
 /**
@@ -1183,9 +1214,9 @@ List.prototype.addCard = function(cardOrBool, bool){
 	if(typeof(cardOrBool) != "undefined" && typeof(cardOrBool) != "boolean"){
 		card = cardOrBool;
 	}else{
-		card = new Card();
+		card = new Card(this);
 	}
-
+	
 	if(typeof(cardOrBool) != "undefined" && typeof(cardOrBool) != "boolean"){
 		var childs = this.cardZone.childNodes;
 		for(var i = 0; i < childs.length; i++){
@@ -1199,19 +1230,17 @@ List.prototype.addCard = function(cardOrBool, bool){
 		this.cardZone.appendChild(card);
 		card.setEditable(editable);
 	}
-	card.setParentList(this);
 
 	var index = this.cardList.length;
 	this.cardList[index] = card;
-
-	return card; // POUR DEBUG
+	card.cardText.focus();
 }
 
 /**
  * @memberof List.prototype
  */
 List.prototype.removeCard = function(card){
-	// We remove the card from the array
+	/** remove the card from the array */
 	for(var element in this.cardList){
 		if(this.cardList[element] == card){
 			this.cardList.splice(element,1);
@@ -1223,11 +1252,19 @@ List.prototype.removeCard = function(card){
  * @memberof List.prototype
  */
 List.prototype.remove = function(){
+	/** remove the HTMLElement */
 	this.parentNode.removeChild(this);
+	
+	/** remove the context menu */
+	ContextMenu.remove(this)
+	
+	/** decrement the counter */
+	List.counter--;
 }
 
 /**
  * @memberof List.prototype
+ * @event
  */
 List.prototype.EVENT_onmousedown = function(event){
 	var target = event.target || event.srcElement;
@@ -1244,90 +1281,77 @@ List.prototype.EVENT_onmousedown = function(event){
 			var that = this;
 			this.clicked = true;
 
-			// On emp�che le comportement par d�faut
+			/** Prevent the default behavior */
 			event.returnValue = false;
 			if(event.preventDefault){
 				event.preventDefault();
 			}
 
-			setTimeout(function(){if(that.clicked){that.EVENT_movelist(event)}}, 121);
+			this.dragged = true;
+			this.style.zIndex = 99;
+
+			/** We remove the "onmousedown" event */
+			util.removeEvent(document, "mousedown", this.REF_EVENT_onmousedown);
+
+			/** We add the "onmousemove" event */
+			util.addEvent(document, "mousemove", this.REF_EVENT_onmousemove);
+
+			// On calcul la position de la souris dans l'objet afin de la fixer � l'endroit o� elle le saisie en enregistrant le calcul dans les variable "decal".
+			var mouseX = event.clientX + document.documentElement.scrollLeft + document.body.scrollLeft;
+			var mouseY = event.clientY + document.documentElement.scrollTop + document.body.scrollTop;
+
+			/** Calculate the offsets */
+			var elementX = 0;
+			var elementY = 0;
+			var element = this;
+			do{
+				elementX += element.offsetLeft;
+				elementY += element.offsetTop;
+				element = element.offsetParent;
+			}while(element && util.getStyle(element, 'position') != 'absolute'  && util.getStyle(element, 'position') != 'fixed');
+
+			this.offsetX += mouseX - elementX;
+			this.offsetY += mouseY - elementY;
+
+			/** Create the drop zone */
+			this.dropZone = document.createElement("div");
+			this.dropZone.style.height = util.getStyle(this, "height");
+			this.dropZone.style.width = util.getStyle(this, "width");
+			this.dropZone.style.float = "left";
+			this.dropZone.className = "list-dropZone";
+			this.dropZone.position = this.position;
+			this.dropZone.setPosition = function(newPosition){ that.dropZone.position = newPosition; }
+			this.parentNode.insertBefore(this.dropZone, this);
+			
+			/** turn the list in absolute position */
+			this.style.left = elementX - parseFloat(util.getStyle(this, "margin-left")) + 'px';
+			this.style.top = elementY - parseFloat(util.getStyle(this, "margin-top")) + 'px';
+			this.style.width = this.offsetWidth + "px";
+			this.style.position = "absolute";
+			this.className = "list-dragged";
+			
+			/** We create the masks */
+			List.createMask();
+
+			/** We add the "onmouseover" event */
+			util.addEvent(document, "mouseover", this.REF_EVENT_onmouseover);
 		}
 	}
 }
 
 /**
  * @memberof List.prototype
- */
-List.prototype.EVENT_movelist = function(event){
-	var target = event.target || event.srcElement;
-
-	this.dragged = true;
-	this.style.zIndex = 99;
-
-	// We remove the "onmousedown" event
-	util.removeEvent(document, "mousedown", this.REF_EVENT_onmousedown);
-
-	// We add the "onmousemove" event
-	util.addEvent(document, "mousemove", this.REF_EVENT_onmousemove);
-
-	// Prevent the default behavior
-	event.returnValue = false;
-	if(event.preventDefault){
-		event.preventDefault();
-	}
-
-	// On calcul la position de la souris dans l'objet afin de la fixer � l'endroit o� elle le saisie en enregistrant le calcul dans les variable "decal".
-	var mouseX = event.clientX + document.documentElement.scrollLeft + document.body.scrollLeft;
-	var mouseY = event.clientY + document.documentElement.scrollTop + document.body.scrollTop;
-
-	// On calcul les el�ments ext�rieurs � l'objet
-	var elementX = 0;
-	var elementY = 0;
-	var element = this;
-	do{
-		elementX += element.offsetLeft;
-		elementY += element.offsetTop;
-		element = element.offsetParent;
-	}while(element && util.getStyle(element, 'position') != 'absolute'  && util.getStyle(element, 'position') != 'fixed');
-
-	this.decalX += mouseX - elementX;
-	this.decalY += mouseY - elementY;
-
-	//On cr�e la zone de collage
-	this.dropZone = document.createElement("div");
-	this.dropZone.style.height = util.getStyle(this, "height");
-	this.dropZone.style.width = util.getStyle(this, "width");
-	this.dropZone.style.float = "left";
-	this.dropZone.className = "list-dropZone";
-	this.dropZone.position = this.position;
-	this.dropZone.setPosition = function(newPosition){ that.dropZone.position = newPosition; }
-	this.parentNode.insertBefore(this.dropZone, this);
-
-	// On transforme l'objet parent en position absolute
-	this.style.left = elementX - 6 + 'px';
-	this.style.top = elementY + 'px';
-	this.style.position = "absolute";
-	this.className = "list-dragged";
-
-	// On cr�e tous les masks
-	List.createMask();
-
-	// We add the "onmouseover" event
-	util.addEvent(document, "mouseover", this.REF_EVENT_onmouseover);
-}
-
-/**
- * @memberof List.prototype
+ * @event
  */
 List.prototype.EVENT_onmousemove = function(event){
 	if(this.dragged){
-		// On r�cup�re la position de la souris
+		// We get the mouse position
 		var x = event.clientX + (document.documentElement.scrollLeft + document.body.scrollLeft);
 		var y = event.clientY + (document.documentElement.scrollTop + document.body.scrollTop);
 
-		// On applique les diff�rents d�calages
-		x -= this.decalX;
-		y -= this.decalY;
+		// Apply different offsets
+		x -= this.offsetX;
+		y -= this.offsetY;
 
 		this.style.left = x + 'px';
 		this.style.top = y + 'px';
@@ -1336,17 +1360,10 @@ List.prototype.EVENT_onmousemove = function(event){
 
 /**
  * @memberof List.prototype
+ * @event
  */
 List.prototype.EVENT_onmouseup = function(event){
 	var target = event.target || event.srcElement;
-
-	//------  -BRICOLAGE-  ------
-	var hasDot = /\.+/gi;
-	var btnAddCard = TEXT.LIST_btnAddCard;
-	if(hasDot.test(btnAddCard)){
-		btnAddCard = btnAddCard.replace(hasDot, "");
-	}
-	//---------------------------
 
 	if(!event.which && event.button){ // Firefox, Chrome, etc...
 		var button = event.button;
@@ -1363,8 +1380,8 @@ List.prototype.EVENT_onmouseup = function(event){
 
 		// On remet les attributs � 0
 		this.dragged = false;
-		this.decalX = 0;
-		this.decalY = 0;
+		this.offsetX = 0;
+		this.offsetY = 0;
 
 		// We remove the "onmouseover" event
 		util.removeEvent(document, "mouseover", this.REF_EVENT_onmouseover);
@@ -1383,15 +1400,8 @@ List.prototype.EVENT_onmouseup = function(event){
 		this.clicked = false;
 	}
 
-	if(button == 1 && (target == this.btnFooter || (target == ContextMenu.btn(btnAddCard) && (ContextMenu.target == this || util.hasParent(ContextMenu.target, this))))){
-		var card = this.addCard();
-		card.cardText.focus();
-		ContextMenu.remove();
-	}
-
-	if(target == ContextMenu.btn(TEXT.LIST_btnRemove) && (ContextMenu.target == this || util.hasParent(ContextMenu.target, this))){
-		this.remove();
-		ContextMenu.remove();
+	if(button == 1 && target == this.btnFooter){
+		this.addCard();
 	}
 }
 
@@ -1404,18 +1414,18 @@ List.prototype.EVENT_onmouseover = function(event){
 
 	if(maskTarget.className == "list-mask"){
 
-		// On enregistre la position de la liste qu'on a survol�e
+		/** the rollover position is recorded */
 		var targetPos = maskTarget.hiddenList.position;
 
-		// Calcul de l'�cart entre les listes.
-		var ecart = targetPos - this.position;
+		/** calculate the difference between lists */
+		var difference = targetPos - this.position;
 
 		/*
 			On insert la list dragg�e apr�s la liste survol�e
 			si la position de la liste survol�e est sup�rieure
 			� celle dragg�.
 		*/
-		if(ecart > 0){
+		if(difference > 0){
 			maskTarget.parentNode.insertBefore(this.dropZone, maskTarget.hiddenList.nextSibling);
 
 			// On diminue de 1 la position de toutes les listes positionn�es avant si �a n'a pas �tait un �change entre deux listes qui �taient c�te � c�te.
@@ -1427,38 +1437,37 @@ List.prototype.EVENT_onmouseover = function(event){
 						allMask[i].hiddenList.setPosition(listPosition - 1);
 					}
 				}
-			}else{ //Sinon on change la position de la cible et le style de son mask.
+			}else{ // else we change the position number of the target and its mask style.
 				maskTarget.hiddenList.setPosition(this.position);
 			}
 		}
 
-		/*
+		/**
 			On insert la list dragg�e avant la liste survol�e
 			si la position de la liste survol�e est inf�rieure
 			� celle dragg�.
 		*/
-		if(ecart < 0){
+		if(difference < 0){
 			maskTarget.parentNode.insertBefore(this.dropZone, maskTarget.hiddenList);
 
 			// On red�fini les positions de toutes les listes si �a n'a pas �tait un �change entre deux listes qui �taient c�te � c�te.
 			if(targetPos != this.position - 1){
-				var allMask = document.getElementsByClassName("list-mask"); //On r�cup�re tous les mask.
+				var allMask = document.getElementsByClassName("list-mask"); // get all the masks
 				for(var i = 0; i < allMask.length; i++){
 					var listPosition = allMask[i].hiddenList.position;
 					if(listPosition >= targetPos && listPosition != List.counter){
 						allMask[i].hiddenList.setPosition(listPosition + 1);
 					}
 				}
-			}else{ //Sinon on change la position de la cible et le style de son mask.
+			}else{ // else we change the position number of the target and its mask style.
 				maskTarget.hiddenList.setPosition(this.position);
-
 			}
 		}
 
-		// On change la position de la liste dragg�
+		/** change the position number of the dragged list */
 		this.setPosition(targetPos);
 
-		// We set the style of the mask
+		/** set the mask style */
 		maskTarget.style.left = maskTarget.hiddenList.offsetLeft + "px";
 		maskTarget.style.top = maskTarget.hiddenList.offsetTop + "px";
 	}
@@ -1479,9 +1488,9 @@ List.prototype.cardNumber = function(){
 	return count;
 }
 
-/******************************************
-		STATICS ATTRIBUTES AND METHODES
-******************************************/
+/*****************************************\
+		STATICS ATTRIBUTES AND METHODS
+\*****************************************/
 
 /**
  * @memberof List
@@ -1499,7 +1508,7 @@ List.createMask = function(emptyListOrList){
 	for(var i = 0; i<list.length; i++){
 		var create = true;
 
-		// We look for the empty lists
+		/** We look for the empty lists */
 		if(emptyList){
 			var childs = list[i].childNodes;
 			for(var j = 0; j<childs.length; j++){
@@ -1512,14 +1521,14 @@ List.createMask = function(emptyListOrList){
 			}
 		}
 
-		// We check if it's the given list
+		/** We check if it's the given list */
 		if(typeof(givenList) != "undefined"){
 			if(list[i] != givenList){
 				create = false;
 			}
 		}
 
-		// We check if there is not already a mask
+		/** We check if there is not already a mask */
 		if(create){
 			var allMask = document.getElementsByClassName("list-mask");
 			for(var j = 0; j<allMask.length; j++){
@@ -1545,7 +1554,7 @@ List.createMask = function(emptyListOrList){
 				mask.style.background = "rgba(255, 120, 90, 0.45)";
 			}
 
-			mask.style.zIndex = 100; //A EFFACER
+			mask.style.zIndex = 100;
 			document.getElementsByClassName("Body")[0].appendChild(mask);
 		}
 	}
@@ -1575,9 +1584,10 @@ List.removeMask = function(){
 }
 
 /**
+ * Instance counter
  * @memberof List
  */
-List.counter = 0; // Instance counter
+List.counter = 0;
 
 /**
  * @memberof List
@@ -1587,11 +1597,14 @@ List.showMask = false;
 /**
  * Provides cards
  * @constructor
- * @param {object} [parentList] - The list which contains the card.
+ * @param {object} parentList - The list which contains the card.
  * @param {string} [text] - The card's text.
  * @returns {object} card - The DOM object representing the card.
  */
 function Card(parentList, text){
+	if(typeof(parentList) == "undefined"){
+		throw "The card must have a parent list to be create.";
+	}
 
 	// we define as draggable all the other cards
 	if(Card.cardList.length > 0){
@@ -1604,7 +1617,7 @@ function Card(parentList, text){
 
 	Card.cardList.push(this);
 
-	this.parentList = "undefined";
+	this.parentList = parentList;
 	this.text = "";
 	this.textHtml = "";
 
@@ -1634,15 +1647,10 @@ function Card(parentList, text){
 	this.btnEdit.className = "card-btnEdit";
 	this.editBar.appendChild(this.btnEdit);
 
-	if(typeof(parentList) != "undefined"){
-		this.parentList = parentList;
-		this.parentList.addCard(this);
-	}
-
 	if(typeof(text) != "undefined"){
 		this.setText(text);
 	}else{
-		this.setText(TEXT.CARD_defaultTitle);
+		this.setText(TEXT["New card"]);
 	}
 
 	this.decalX = 0;
@@ -1676,21 +1684,18 @@ function Card(parentList, text){
 
 	// We set the current card as editable
 	card.setEditable(true);
-
+	
 	// Add context menu
-	ContextMenu.add(card, [TEXT.LIST_btnAddCard, "Annuler", "Retablir", TEXT.LIST_btnRemove]) // EN TEST
+	
+	ContextMenu.add(card, 
+		{label: function(){ return TEXT["Add a card"]}, action: function(){card.parentList.addCard()}},
+		{label: function(){ return TEXT["Undo"]}, action: function(){}}, 
+		{label: function(){ return TEXT["Redo"]}, action: function(){}},
+		{label: function(){ return TEXT["Remove the list"]}, action: function(){card.parentList.remove()}}
+	)
 
 	// We return the created card
 	return card;
-}
-
-/**
- * Must be used after the dom attribute was embed by the parentlist into the DOM
- * @memberof Card.prototype
- */
-Card.prototype.setParentList = function(list){
-	this.parentList = list;
-	this.cardText.style.minHeight = util.getStyle(this.cardText, "height"); // In pixels
 }
 
 /**
@@ -1714,51 +1719,44 @@ Card.prototype.setDraggable = function(bool){
  * @memberof Card.prototype
  */
 Card.prototype.setEditable = function(bool){
-	if(bool){
-		if(!this.editable){
-			this.editable = true;
-			this.setDraggable(false);
-			this.hideEditBar(12);
+	if(bool && !this.editable){
+		this.editable = true;
+		this.setDraggable(false);
+		this.hideEditBar(12);
 
-			this.cardText.contentEditable = true;
-			this.cardText.style.cursor = "text";
-			this.cardText.focus();
+		this.cardText.contentEditable = true;
+		this.cardText.style.cursor = "text";
+		this.cardText.focus();
 
-			// Allow to put the Caret at the end of the text
-		  if (document.getSelection) {    // all browsers, except IE before version 9
-             var sel = document.getSelection ();
-             // sel is a string in Firefox and Opera,
-             // and a selectionRange object in Google Chrome, Safari and IE from version 9
-             //console.log(sel);
-         }
-         else {
-             if (document.selection) {   // Internet Explorer before version 9
-                 	var textRange = document.selection.createRange ();
-                	//console.log(textRange.text);
-             }
-         }
-		  	//sel.collapse(this.cardText.firstChild, this.cardText.textContent.length);
-
-		  	// We add the "onkeydown" event
-			util.addEvent(document, "keydown", this.REF_EVENT_onkeydown);
-		}
-	}else{
-		if(this.editable){
-			var isEmpty = /^\s*$/gi;
-			if(isEmpty.test(this.getText())){
-				this.cardText.blur();
-				this.remove();
-			}else{
-				this.editable = false;
-				this.setDraggable(true);
-				this.cardText.contentEditable = false;
-				this.cardText.style.cursor = "default";
-				this.cardText.blur();
-				this.cardText.innerHTML = this.textHtml;
-
-				// We remove the "onkeydown" event
-				util.removeEvent(document, "keydown", this.REF_EVENT_onkeydown);
+		// Allow to put the Caret at the end of the text
+		if (document.getSelection) {    // all browsers, except IE before version 9
+			var sel = document.getSelection ();
+			// sel is a string in Firefox and Opera,
+			// and a selectionRange object in Google Chrome, Safari and IE from version 9
+		}else{
+			if(document.selection) {   // Internet Explorer before version 9
+				var textRange = document.selection.createRange ();
 			}
+		}
+		//sel.collapse(this.cardText.firstChild, this.cardText.textContent.length);
+
+		// We add the "onkeydown" event
+		util.addEvent(document, "keydown", this.REF_EVENT_onkeydown);
+	}else if(this.editable){
+		var isEmpty = /^\s*$/gi;
+		if(isEmpty.test(this.getText())){
+			this.cardText.blur();
+			this.remove();
+		}else{
+			this.editable = false;
+			this.setDraggable(true);
+			this.cardText.contentEditable = false;
+			this.cardText.style.cursor = "default";
+			this.cardText.blur();
+			this.cardText.innerHTML = this.textHtml;
+
+			// We remove the "onkeydown" event
+			util.removeEvent(document, "keydown", this.REF_EVENT_onkeydown);
 		}
 	}
 }
@@ -1776,6 +1774,9 @@ Card.prototype.remove = function(){
 		}
 	}
 
+	// We remove the context menu
+	ContextMenu.remove(this)
+	
 	// We remove the "onmousedown" event
 	util.removeEvent(document, "mousedown", this.REF_EVENT_onmousedown);
 
@@ -1813,6 +1814,7 @@ Card.prototype.getText = function(){
 
 /**
  * @memberof Card.prototype
+ * @event
  */
 Card.prototype.EVENT_onmousedown = function(event){
 	var target = event.target || event.srcElement;
@@ -1875,7 +1877,7 @@ Card.prototype.EVENT_onmousedown = function(event){
 			this.parentList.removeCard(this); // We remove the card from the parentList
 
 			Card.createMask(); // We create the Cards's masks
-			List.createMask(true); // We create the empty lists's mask
+			List.createMask(true); // We create the masks for the empty lists
 			if(this.parentList.cardNumber() == 1){
 				List.createMask(this.parentList); // We create a mask for the parentList if the current card is alone in it
 			}
@@ -1888,6 +1890,7 @@ Card.prototype.EVENT_onmousedown = function(event){
 
 /**
  * @memberof Card.prototype
+ * @event
  */
 Card.prototype.EVENT_onmousemove = function(event){
 	var target = event.target || event.srcElement;
@@ -1908,6 +1911,7 @@ Card.prototype.EVENT_onmousemove = function(event){
 
 /**
  * @memberof Card.prototype
+ * @event
  */
 Card.prototype.EVENT_onmouseup = function(event){
 	var target = event.target || event.srcElement;
@@ -1919,7 +1923,7 @@ Card.prototype.EVENT_onmouseup = function(event){
 	}
 
 	if(button == 1 && this.dragged){
-		// On empèche le comportement par défaut
+		/** prevent the default behavior */
 		event.returnValue = false;
 		if(event.preventDefault){
 			event.preventDefault();
@@ -1930,7 +1934,7 @@ Card.prototype.EVENT_onmouseup = function(event){
 		this.decalX = 0;
 		this.decalY = 0;
 
-		//On supprime les mask
+		/** remove the masks */
 		Card.removeMask()
 		List.removeMask()
 
@@ -1939,21 +1943,20 @@ Card.prototype.EVENT_onmouseup = function(event){
 		this.className = "card";
 		this.dropZone.parentNode.replaceChild(this, this.dropZone);
 
-		this.parentList.removeCard(this); // We remove the card from the parentList
-		this.parentList = this.parentNode.parentNode; // We change the "parentList" attribute
-		this.parentList.addCard(this); // We add the card to the new parent list
+		/** handle the parentList property */
+		this.parentList.removeCard(this); // remove the card from the parentList
+		this.parentList = this.parentNode.parentNode; // change the "parentList" attribute
+		this.parentList.addCard(this); // add the card to the new parent list
 
-		this.dropZone = 'undefined';	// We erase the "dropZone" attribute
+		this.dropZone = 'undefined';	// erase the "dropZone" attribute
 
-		// We add the "onmousedown" event
+		/** We add the "onmousedown" event */
 		util.addEvent(document, "mousedown", this.REF_EVENT_onmousedown);
 
 	}else if(button == 1 && target == this.btnEdit){
 		this.setEditable(true);
 	}else if(button == 1 && target == this.btnClose){
 		this.remove();
-	}else{
-		ContextMenu.remove();
 	}
 }
 
@@ -2032,7 +2035,6 @@ Card.prototype.EVENT_onkeydown = function(event){
 		}
 		this.editBar.style.top = "100%";
 	}
-	//console.log(event.keyCode)
 }
 
 /**
@@ -2242,10 +2244,12 @@ function hideMask(){
 	Card.showMask = false;
 }
 
-//On cr�e les listes par d�faut
-for(var i = 0; i<SETTING.number_default_list; i++){
-	new List().addCard(false);
-}
+/** Create the default lists */
+(function(){
+	new List(TEXT["To do"]).addCard(false);
+	new List(TEXT["In progress"]).addCard(false);
+	new List(TEXT["Done"]).addCard(false);
+})()
 
 util.addEvent(BTN_ADDLIST, "click", function(){new List;});
 
