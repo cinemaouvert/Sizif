@@ -27,7 +27,7 @@ input[type="text"]:focus {
   outline: none;
 }
 
-.Background {
+.background {
   position: absolute;
   height: 100%;
   width: 100%;
@@ -37,7 +37,7 @@ input[type="text"]:focus {
 /**********\
 	HEAD
 \**********/
-.Head {
+.head {
   height: 5%;
   min-width: 100%;
   background: #505050;
@@ -104,7 +104,7 @@ input[type="text"]:focus {
 /**********\
 	NECK
 \**********/
-.Neck {
+.neck {
   height: 6.5%;
   min-width: 100%;
 }
@@ -112,7 +112,7 @@ input[type="text"]:focus {
 /**********\
 	BODY
 \**********/
-.Body {
+.body {
   min-width: 99.5%;
   padding-left: 0.25%;
   padding-right: 0.25%;

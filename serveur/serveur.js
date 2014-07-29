@@ -1,5 +1,5 @@
 var http = require('http');
-
+var port = 8900; // Peut-être le récupérer depuis l'argument en CLI ?
 // Création du serveur
 var server = http.createServer(function(req, res) {
 	res.writeHead(200, {"Content-Type": "text/html"});
@@ -24,4 +24,5 @@ io.sockets.on('connection', function (socket) {
     });
 });
 
-server.listen(8900);
+server.listen(port);
+console.log("Now listening on http://localhost:"+port);
