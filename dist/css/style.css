@@ -136,7 +136,7 @@ input[type="text"]:focus {
   transition-duration: 0.5s;
 }
 
-.list-dropZone {
+.list-dropArea {
   margin-left: 0.25%;
   margin-right: 0.25%;
   background: rgba(0, 0, 0, 0.4);
@@ -150,7 +150,7 @@ input[type="text"]:focus {
   padding: 0px 5px 0px 5px;
 }
 
-.list-cardZone {
+.list-cardArea {
   min-height: 35px;
   max-height: 535px;
   padding: 0px 9px 0px 9px;
@@ -174,7 +174,7 @@ input[type="text"]:focus {
 /***************************\
 			CARD
 \***************************/
-.card, .card-dropZone, .card-caught, .card-dragged {
+.card, .card-dropArea, .card-caught, .card-dragged {
   background: #f0f0f0;
   margin: 7px 0px 7px 0px;
   box-shadow: 0px 1px 1px rgba(0, 0, 0, 0.1);
@@ -206,7 +206,7 @@ input[type="text"]:focus {
   background: #fafafa;
 }
 
-.card-dropZone {
+.card-dropArea {
   background: rgba(0, 0, 0, 0.1);
   box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.5) inset;
   border: none;
@@ -318,7 +318,7 @@ input[type="text"]:focus {
     line-height: 20px;
   }
 
-  .card, .card-dropZone, .card-caught, .card-dragged {
+  .card, .card-dropArea, .card-caught, .card-dragged {
     min-height: 20px;
     font-size: 50%;
   }
@@ -344,7 +344,7 @@ input[type="text"]:focus {
     line-height: 25px;
   }
 
-  .card, .card-dropZone, .card-caught, .card-dragged {
+  .card, .card-dropArea, .card-caught, .card-dragged {
     min-height: 30px;
     font-size: 60%;
   }
@@ -370,7 +370,7 @@ input[type="text"]:focus {
     line-height: 30px;
   }
 
-  .card, .card-dropZone, .card-caught, .card-dragged {
+  .card, .card-dropArea, .card-caught, .card-dragged {
     min-height: 40px;
     font-size: 70%;
   }
@@ -396,7 +396,7 @@ input[type="text"]:focus {
     line-height: 35px;
   }
 
-  .card, .card-dropZone, .card-caught, .card-dragged {
+  .card, .card-dropArea, .card-caught, .card-dragged {
     min-height: 50px;
     font-size: 83%;
   }
@@ -421,7 +421,7 @@ input[type="text"]:focus {
     width: 28%;
   }
 
-  .card, .card-dropZone, .card-caught, .card-dragged {
+  .card, .card-dropArea, .card-caught, .card-dragged {
     font-size: 60%;
   }
 }
@@ -444,7 +444,7 @@ input[type="text"]:focus {
     width: 24%;
   }
 
-  .card, .card-dropZone, .card-caught, .card-dragged {
+  .card, .card-dropArea, .card-caught, .card-dragged {
     font-size: 60%;
   }
 }
@@ -467,7 +467,7 @@ input[type="text"]:focus {
     width: 19%;
   }
 
-  .card, .card-dropZone, .card-caught, .card-dragged {
+  .card, .card-dropArea, .card-caught, .card-dragged {
     font-size: 70%;
   }
 }
@@ -490,7 +490,7 @@ input[type="text"]:focus {
     width: 14%;
   }
 
-  .card, .card-dropZone, .card-caught, .card-dragged {
+  .card, .card-dropArea, .card-caught, .card-dragged {
     font-size: 83%;
   }
 }

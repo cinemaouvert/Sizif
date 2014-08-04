@@ -1,18 +1,24 @@
-// MODE STRICT
-//"use strict"
+/**
+ * @file This file creates the "util" which
+ * contains independent methods used occasionally 
+ * by some part of the application.
+ */
 
-/*
-	Contient l'objet util et toutes les m�thodes utilis�es
-*/
+/** creates the object */
+util = {};
 
-util = {}
-
-/*
-	Ajout de scripts de mani�re classique, via la balise <script>
-	dans le cas d'un ajout asynchrone, s'il s'agit d'un ajout synchrone,
-	on fait une requ�te ajax synchrone puis on place la r�ponse dans une balise
-	script qui est donc interpr�t� directement.
-*/
+/**
+ * It adds scripts using a classic way which means using the "script" tag
+ * in the asynchronous case. If it's a synchronous add, it does a synchronous ajax 
+ * query then it puts the response in a "script" tag so which is automatically 
+ * interpreted. 
+ * @function
+ * @param {string} url - The script url.
+ * @param {boolean} [async] - Allows to append a script in a synchronous way or not. By default it's set to asynchronous.
+ * @param {object} [callback] - The callback function that can send the user if the asynchronous way is chosen.
+ * @return {object} script - The node which contains the script.
+ * @todo il y a un effet de bord à cause de la fonction privée utilisée.
+ */
 util.addScript = function(url, async, callback){
 	if(typeof(async) == 'undefined'){
 		var async = true;
@@ -24,7 +30,7 @@ util.addScript = function(url, async, callback){
 			var src = url;
 			var script = document.createElement('script');
 			script.type = 'text/javascript';
-			script.src = src + '?' + (new Date().getTime()); //-------Evite les problemes de cache
+			script.src = src + '?' + (new Date().getTime()); // avoids the cache issues.
 			document.getElementsByTagName('head')[0].appendChild(script);
 		}else if(url.substring(0,8) == "<script>"){
 			var script = document.createTextNode(url);
@@ -37,68 +43,82 @@ util.addScript = function(url, async, callback){
 		}
 	}else{
 		if(typeof(callback) == 'undefined'){
-			var script = this.addScriptAjax(url);
+			var script = addScriptAjax(url);
 		}else{
-			var script = this.addScriptAjax(url, callback);
+			var script = addScriptAjax(url, callback);
 		}
 	}
 
+	/**
+	 * Allows to download scripts in synchronous way.
+	 * @function
+	 * @private
+	 * @memberof util.addScript
+	 * @param {string} url - The script url.
+	 * @param {string} [cache] - 
+	 * @param {string} [cacheName] - 
+	 * @param {boolean} [async] - Allows to append a script in a synchronous way or not. By default it's set to asynchronous.
+	 * @param {object} [callback] - The callback function that can send the user if the asynchronous way is chosen.
+	 * @todo Problême avec les arguments, revoir le callback.
+	 */
+	function addScriptAjax(url, cache, cacheName, async, callback){
+		if(url[url.length - 1] != "/"){
+			if(typeof(cache) == "undefined"){
+				var cache = false;
+			}
+			if(typeof(cacheName) == "undefined"){
+				var cacheName = url;
+			}
+			if(typeof(async) == "undefined"){
+				var async = false;
+			}
+
+			/** initializes an ajax query to download the javascript file. */
+			var req ;
+			if (window.XMLHttpRequest) {
+				req = new XMLHttpRequest();
+			} else if (window.ActiveXObject) {
+				req = new ActiveXObject("Microsoft.XMLHTTP");
+			}
+			req.onreadystatechange = function() {
+				if (req.readyState == 4 && req.status == 200) {
+					/**
+					 * If there's a caching option, it stores the script
+					 * in the localStorage with its url as key. Therefore, if
+					 * the script is already present in the localStorage,
+					 * the function doesn't make a new query to the server 
+					 * when the page is reload.
+					 */
+					if(cache && localStorage){
+						localStorage.setItem(cacheName, req.responseText);
+					}
+
+					if(typeof(callback) != "undefined"){
+						callback(req.responseText);
+					}
+
+					/** run the received code using the "runScript" function */
+					this.runScript(req.responseText);
+				}
+			}
+
+			req.open("GET", url, async);
+			req.send(null);
+		}else{
+			throw 'Unable to add the script, url error: "' + url + '".';
+		}
+	}
+	
 	return script;
 }
 
-//Permet de charger des script de mani�re synchrone avec l'execution du code
-util.addScriptAjax = function(url, miseEnCache, nomMiseEnCache, asynchrone, callback){
-	if(url[url.length - 1] != "/"){
-		if(typeof(miseEnCache) == "undefined"){
-			var miseEnCache = false;
-		}
-		if(typeof(nomMiseEnCache) == "undefined"){
-			var nomMiseEnCache = url;
-		}
-		if(typeof(asynchrone) == "undefined"){
-			var asynchrone = false;
-		}
-
-		// on initialise une requ�te Ajax pour t�l�charger le fichier javascript
-		var req ;
-		if (window.XMLHttpRequest) {
-			req = new XMLHttpRequest();
-		} else if (window.ActiveXObject) {
-			req = new ActiveXObject("Microsoft.XMLHTTP");
-		}
-		req.onreadystatechange = function() {
-			if (req.readyState == 4 && req.status == 200) {
-				/*
-					Si la mise en cache est souhait�e, on stocke le script
-					dans le localStorage avec son url comme cl�, comme �a,
-					si le script est d�j� pr�sent, on ne fait pas de nouvelle
-					requ�te au serveur lors du rechargement.
-				*/
-				if(miseEnCache && localStorage){
-					localStorage.setItem(nomMiseEnCache, req.responseText);
-				}
-
-				if(typeof(callback) != "undefined"){
-					callback(req.responseText);
-				}
-
-				//On execute la r�ponse
-				this.launchScript(req.responseText);
-			}
-		}
-
-		req.open("GET", url, asynchrone);
-		req.send(null);
-	}else{
-		throw 'Impossible d\'ajouter le script, erreur d\'url: "' + url + '".';
-	}
-}
-
-/*
-	Permet d'executer un script comme le ferait "eval" mais est plus appropri� dans le cas de
-	d�claration d'objet, de m�thodes ou de fonctions.
-*/
-util.launchScript = function(string){
+/**
+ * Allows to run a javascript string as could do "eval" but it's more appropriate in the 
+ * case of object, method or function statement.
+ * @function
+ * @param {string} string - The string to run.
+ */
+util.runScript = function(string){
 	var script = document.createElement('script');
 	script.type = 'text/javascript';
 	script.appendChild(document.createTextNode(string));
@@ -107,14 +127,25 @@ util.launchScript = function(string){
 	script.parentNode.removeChild(script);
 }
 
+/**
+ * Allows to get the object contained in a json file using 
+ * an ajax query.
+ * @function
+ * @param {string} url - The script url.
+ * @param {object} [callback] - The callback function that can send the user if the asynchronous way is chosen. The response text is send to the callback function.
+ * @param {boolean} [async] - Allows to append a script in a synchronous way or not. By default it's set to asynchronous.
+ * @return {object} The json object. 
+ * @todo Probleme sur le retour de la fonction, pourquoi le json n'est pas parsé et renvoyé dans le cas synchrone?
+ */
 util.getJSON = function(url, callback, async){
 	if(typeof(async) == "undefined"){
 		async = false;
 	}
 
-	if(url.substring(url.length - 5) == ".json" || url.substring(url.length - 5) == ".JSON"){
+	var isJson = /\.json/gi;
+	if(isJson.test(url.substring(url.length - 5))){
 
-		// on initialise une requ�te Ajax pour t�l�charger le fichier json
+		/** initializes an ajax query to download the json file. */
 		var req ;
 		if (window.XMLHttpRequest) {
 			req = new XMLHttpRequest();
@@ -123,13 +154,6 @@ util.getJSON = function(url, callback, async){
 		}
 		req.onreadystatechange = function(){
 			if (req.readyState == 4 && req.status == 200){
-				/*
-					Si la mise en cache est souhait�e, on stocke le script
-					dans le localStorage avec son url comme cl�, comme �a,
-					si le script est d�j� pr�sent, on ne fait pas de nouvelle
-					requ�te au serveur lors du rechargement.
-				*/
-
 				if(typeof(callback) != "undefined"){
 					callback(req.responseText);
 				}
@@ -139,49 +163,71 @@ util.getJSON = function(url, callback, async){
 		req.open("GET", url, async);
 		req.send(null);
 	}else{
-		throw 'Impossible d\'ajouter le script, erreur d\'url: "' + url + '".';
-	}
-}
-
-util.addEvent = function(objet, event, fonction, capture){ //Ajouter un �couteur d'�v�nement.
-	if(typeof(capture) == 'undefined'){
-		capture = false;
-	}
-
-	if(objet.attachEvent){
-		objet.attachEvent('on' + event, fonction);
-	}
-	else if (objet.addEventListener){
-		objet.addEventListener(event, fonction, capture);
-	}
-}
-
-util.removeEvent = function(objet, event, fonction, capture){
-	if(typeof(capture) == 'undefined'){
-		capture = false;
-	}
-
-	if (objet.detachEvent){
-		objet.detachEvent ('on' + event, fonction);
-	}
-	else if (objet.removeEventListener){
-		objet.removeEventListener (event, fonction, capture);
+		throw 'Unable to get the json, url error: "' + url + '".';
 	}
 }
 
 /**
- * Test the parents of a child according to criteria
+ * Adds an event listener.
+ * @function
+ * @param {object} obj - The object on which will be listen the event.
+ * @param {string} event - The string representing the event. (e.g "click", "mousedown", ...)
+ * @param {object} fn - The executed function when the event is triggered.
+ * @param {boolean} [capture] - Allows to define if the user want to initiate the capture. Useful only with Firefox 
  */
-util.hasParent = function(supposedChild, supposedParentOrProp, supposedParentOrValue){
+util.addEvent = function(obj, event, fn, capture){
+	if(typeof(capture) == 'undefined'){
+		capture = false;
+	}
+
+	if(obj.attachEvent){ // MSIE
+		obj.attachEvent('on' + event, fn);
+	}else if (obj.addEventListener){ // Firefox, Chrome, etc ...
+		obj.addEventListener(event, fn, capture);
+	}
+}
+
+/**
+ * Remove an event listener.
+ * @function
+ * @param {object} obj - The object used to define the listener.
+ * @param {string} event - The string representing the event. (e.g "click", "mousedown", ...)
+ * @param {object} fn - The function used to define the listener.
+ * @param {boolean} [capture] - Allows to define if the user has wanted to initiate the capture. Useful only with Firefox 
+ */
+util.removeEvent = function(obj, event, fn, capture){
+	if(typeof(capture) == 'undefined'){
+		capture = false;
+	}
+
+	if (obj.detachEvent){
+		obj.detachEvent ('on' + event, fn);
+	}
+	else if (obj.removeEventListener){
+		obj.removeEventListener (event, fn, capture);
+	}
+}
+
+/**
+ * Test if a DOM node has for parent a supposed parent send to the 
+ * function. It can also test if a DOM node has a parent with a specific
+ * property which has a specific value. 
+ * @function
+ * @param {object} child - The tested child.
+ * @param {object|string} supposedParentOrProp - The supposed parent or the tested property.
+ * @param {string|number} [supposedValue] - The wished value of the tested property.
+ * @return {boolean} The result of the test.
+ */
+util.hasParent = function(child, supposedParentOrProp, supposedValue){
 	if(typeof(supposedParentOrProp) == "string"){
 		var prop = supposedParentOrProp;
-		var value = supposedParentOrValue;
+		var value = supposedValue;
 	}else if(typeof(supposedParentOrProp) == "object"){
 		var supposedParent = supposedParentOrProp;
 	}
 
-	if(typeof(supposedChild) != "undefined" && typeof(supposedParent) != "undefined"){
-		var parent = supposedChild.parentNode;
+	if(typeof(child) != "undefined" && typeof(supposedParent) != "undefined"){
+		var parent = child.parentNode;
 		do{
 			if(parent == supposedParent){
 				return true;
@@ -193,8 +239,8 @@ util.hasParent = function(supposedChild, supposedParentOrProp, supposedParentOrV
 				}
 			}
 		}while(parent);
-	}else if(typeof(supposedChild) != "undefined" && typeof(prop) != "undefined"){
-		var parent = supposedChild;
+	}else if(typeof(child) != "undefined" && typeof(prop) != "undefined"){
+		var parent = child;
 		do{
 			if(parent[prop] == value){
 				return true;
@@ -212,35 +258,30 @@ util.hasParent = function(supposedChild, supposedParentOrProp, supposedParentOrV
 	return false;
 }
 
+/**
+ * Allows to get the computed style of DOM node. 
+ * @function
+ * @param {object} element - The DOM node whose style is sought.
+ * @param {string} styleProp - The name of the style property.
+ * @return {string|number} The property value found by the function.
+ */
 util.getStyle = function(element, styleProp){
 	var result = "";
-	if (element.currentStyle){ //-----pour IE
+	if (element.currentStyle){ // MSIE
 		try{
 			result = element.currentStyle[styleProp];
 		}
 		catch(e){
-			if(typeof(DebugAlert) != "undefined"){
-				DebugAlert(e, "exception");
-			}
-			else{
-				DisplayAlert("Une exception s'est produite: " + e);
-			}
-			result = false;
+			throw e
 		}
 	}
-	else if (document.defaultView && document.defaultView.getComputedStyle){ //----pour Firefox, Opera...
+	else if (document.defaultView && document.defaultView.getComputedStyle){ // Firefox, Opera...
 		if(typeof(element) != "undefined" && element.nodeType == 1){
 			try{
 				result = document.defaultView.getComputedStyle(element,null).getPropertyValue(styleProp);
 			}
 			catch(e){
-				if(typeof(DebugAlert) != "undefined"){
-					DebugAlert(e, "exception");
-				}
-				else{
-					DisplayAlert("Une exception s'est produite: " + e);
-				}
-				result = false;
+				throw e
 			}
 		}
 	}
@@ -248,6 +289,12 @@ util.getStyle = function(element, styleProp){
 	return result;
 }
 
+/**
+ * Allows to convert a key code into a html string 
+ * @function
+ * @param {number} keyCode - The key code to convert.
+ * @return {string} The result of the conversion.
+ */
 util.fromKeycodeToHtml = function(keyCode){
 	var result = "";
 
@@ -260,16 +307,16 @@ util.fromKeycodeToHtml = function(keyCode){
 		38: 'up',
 		39: 'right',
 		40: 'down',
-		48: '&agrave;', // == "�"
+		48: '&agrave;', // == "â"
 		49: '&',
-		50: '&eacute;', // == "�"
+		50: '&eacute;', // == "é"
 		51: '"',
 		52: '\'',
 		53: '(',
 		54: '-',
-		55: '&egrave;', // == "�"
+		55: '&egrave;', // == "ê"
 		56: '_',
-		57: '&ccedil;', // == "�"
+		57: '&ccedil;', // == "ç"
 		65: 'a',
 		66: 'b',
 		67: 'c',
@@ -301,7 +348,7 @@ util.fromKeycodeToHtml = function(keyCode){
 		188: ',',
 		190: ';',
 		191: ':',
-		192: '&ugrave', // == "�"
+		192: '&ugrave', // == "û"
 		219: ')',
 		220: '*',
 		223: '!',
@@ -317,60 +364,74 @@ util.fromKeycodeToHtml = function(keyCode){
 	return result;
 }
 
+/**
+ * Copies all the element contained in an object into an over object.
+ * @function
+ * @param {object} destination - The recipient object.
+ * @param {object} source - The source.
+ */
 util.inherit = function(destination, source){
 	for (var element in source) {
 		destination[element] = source[element];
 	}
 }
-;//Variables globales utilis�es par tout le programme
-var SETTING,
-	TEXT, //L'objet contenant les string de l'interface
-	BTN_ADDLIST = document.getElementsByClassName("btn_addList")[0];
-	BROWSER = "";
+;/**
+ * @file This file handles the settings and
+ * defines the variables used by the application.
+ */
+
+/** creates the scope */
+app = {}; 
+ 
+app.SETTING;  
+app.TEXT; // the object containing the text of the interface.
+app.BTN_ADDLIST = document.getElementsByClassName("btn_addList")[0];
+app.BROWSER = "";
 
 (function(){
-	//On charge les param�tres
+	/** loads settings */
 	util.getJSON("setting.json", function(response){
-		SETTING = JSON.parse(response);
+		app.SETTING = JSON.parse(response);
 		if(typeof(console.clear) != "undefined"){
 			console.clear();
 		}
 	})
 	
-	// On cherche le navigateur
+	/** finds which is the client browser */
 	var userAgent = navigator.userAgent;
 	var isChrome = /chrome/gi;
 		
 	if(isChrome.test(userAgent)){
-		BROWSER = "chrome";
+		app.BROWSER = "chrome";
 	}else{
 		var isOpera = /(opera|\sopr)/gi; 
 		
 		if(isOpera.test(userAgent)){
-			BROWSER = "opera";
+			app.BROWSER = "opera";
 		}else{
-			var isMSIE = /(msie|trident)/gi; // On v�rifie s'il y a la signature MSIE d'internet explorer ou "Trident", son moteur de rendu.
+			/** check if there is the MSIE signature from internet explorer or "Trident", is layout engine */
+			var isMSIE = /(msie|trident)/gi; 
 		
 			if(isMSIE.test(userAgent)){
-				BROWSER = "msie";
+				app.BROWSER = "msie";
 			}else{
-				var isFirefox = /firefox/gi; // On v�rifie s'il y a la signature MSIE d'internet explorer ou "Trident", son moteur de rendu.
+				var isFirefox = /firefox/gi; 
 		
 				if(isFirefox.test(userAgent)){
-					BROWSER = "firefox";
+					app.BROWSER = "firefox";
 				}else{
 					var isSafari = /safari/gi;
 			
 					if(isSafari.test(userAgent)){
-						BROWSER = "safari";
+						app.BROWSER = "safari";
 					}
 				}
 			}
 		}
 	}
 	
-	//For now there are troubles with MSIE
-	if(BROWSER == "msie"){
+	/** for now there are troubles with MSIE */
+	if(app.BROWSER == "msie"){
 		var msgEN = "[en]\nFor now the application isn't completely \ncompatible with Internet Explorer, use \nrather Firefox, Google Chrome, Safari or Opera."
 		var msgFR = "[fr]\nPour l'instant l'application n'est pas completement \ncompatible avec Internet Explorer, utilisez \nplutot Firefox, Google Chrome, Safari ou Opera."
 		var msg = msgEN + "\n\n" + msgFR;
@@ -378,52 +439,46 @@ var SETTING,
 		console.warn(msg);	
 	}
 	
-	//Si la langue est r�gl�e sur "Auto", on la d�fini selon la langue du navigateur
-	if(SETTING.lang == "auto" || SETTING.lang == "Auto" || SETTING.lang == "AUTO"){
+	/** if the "lang" setting is set on "auto", it defines it depending on the browser language. */
+	var isAuto = /auto/gi;
+	if(isAuto.test(app.SETTING.lang)){
 		var isLong = /-/g;
 		if(isLong.test(window.navigator.language)){
 			var posEnd = window.navigator.language.indexOf("-");
 			var language = window.navigator.language.substring(0, posEnd);
-			SETTING.lang = language;
+			app.SETTING.lang = language;
 		}else{
-			SETTING.lang = window.navigator.language;
+			app.SETTING.lang = window.navigator.language;
 		}
 	}
-	
-	//On g�re le hors-ligne
-	if(SETTING.offline){
-		var cool = document.getElementsByTagName("html")[0];
-		cool.setAttribute("manifest", "offline.appcache");
-		window.applicationCache.update();
-	}
-
 })();/**
  * @file This file manages translations and provides a function which allows the user to change the lang
  * of the interface.
  * @author Yohann Vioujard
  */
  
-/** download lang defined by the LANG variable and create the TEXT object */
-if(localStorage && !localStorage.getItem("lang-" + SETTING.lang)){
-	util.getJSON("lang/" + SETTING.lang + ".json", function(response){
-		TEXT = JSON.parse(response);
-		//On stocke le json sous le nom de la langue
-		localStorage.setItem("lang-" + SETTING.lang, response);
+/** download lang defined by the "app.SETTING.lang" variable and create the app.TEXT object */
+if(localStorage && !localStorage.getItem("lang-" + app.SETTING.lang)){
+	util.getJSON("lang/" + app.SETTING.lang + ".json", function(response){
+		app.TEXT = JSON.parse(response);
+		
+		/** stores the json with the lang name */
+		localStorage.setItem("lang-" + app.SETTING.lang, response);
 	});
 }else if(localStorage){
-	TEXT = JSON.parse(localStorage.getItem("lang-" + SETTING.lang));
+	app.TEXT = JSON.parse(localStorage.getItem("lang-" + app.SETTING.lang));
 }else{
-	util.getJSON("lang/" + SETTING.lang + ".json", function(response){
-		TEXT = JSON.parse(response);
+	util.getJSON("lang/" + app.SETTING.lang + ".json", function(response){
+		app.TEXT = JSON.parse(response);
 	});
 }
 
-//On ajoute la langue au text
-TEXT.lang = SETTING.lang;
+/** adds the lang to the "app.TEXT" variable */
+app.TEXT.__lang__ = app.SETTING.lang;
 
-checkText(TEXT);
+checkText(app.TEXT);
 
-// We check if the TEXT can be used
+/** checks if the app.TEXT can be used */
 function checkText(text){
 	var listProperty = ["New list", "Add a card", "Remove the list", "New card"];
 	
@@ -438,34 +493,35 @@ function checkText(text){
 	}	
 }
 	
-//Fonction permettant de changer la langue sans rechargement
 /**
  * Allows to change the lang without reload the page
  * @function changeLang
  * @param {string} newLang - A string of to letters representing the lang (e.g. "fr" for french) 
  */
 function changeLang(newLang){
-	var oldTEXT = TEXT;
+	var oldTEXT = app.TEXT;
 	var listTrObject = new Array;
 	var listAlreadyDone = new Array;
-	if(TEXT.lang != newLang){
-			//On charge la nouvelle langue et on red�fini TEXT
+	if(app.TEXT.__lang__ != newLang){
+	
+			/** loads the new lang and redefines app.TEXT */
 			if(localStorage && !localStorage.getItem("lang-" + newLang)){
 				util.getJSON("lang/" + newLang + ".json", function(response){
-					TEXT = JSON.parse(response);
-					//On stocke le json sous le nom de la langue
+					app.TEXT = JSON.parse(response);
+					
+					/** stores the json using the lang name */
 					localStorage.setItem("lang-" + newLang, response);
 				});
 			}else if(localStorage){
-				TEXT = JSON.parse(localStorage.getItem("lang-" + newLang));
+				app.TEXT = JSON.parse(localStorage.getItem("lang-" + newLang));
 			}else{
 				util.getJSON("lang/" + newLang + ".json", function(response){
-					TEXT = JSON.parse(response);
+					app.TEXT = JSON.parse(response);
 				});
 			}
 			
-			TEXT.lang = newLang;
-			checkText(TEXT);
+			app.TEXT.__lang__ = newLang;
+			checkText(app.TEXT);
 		
 		/**
 		 * List all the translatable elements
@@ -484,7 +540,7 @@ function changeLang(newLang){
 						if(object[child] != null && (object[child] instanceof HTMLElement || object[child] instanceof Element)){
 							var newObj = true;
 						
-							//On v�rifie si on n'a pas d�ja test� l'objet
+							/** check if the object hasn't been tested yet */
 							for(var obj in listAlreadyDone){
 								if(listAlreadyDone[obj] == object[child]){
 									newObj = false;
@@ -508,14 +564,14 @@ function changeLang(newLang){
 		
 		listingTranslatableObject();
 		
-		//On compare le contenu de tous les �l�ments traductibles avec l'ancienne langue, si ils se ressemblent, on les met dans la nouvelle langue
+		/** compares the content of all the translatable elements with the old lang, if they're the same, it puts it into the new lang */ 
 		for(var obj in listTrObject){
 			if(typeof(listTrObject[obj]) != "undefined" && listTrObject[obj].nodeType == 1){
 				var text = listTrObject[obj].textContent;
 				for(var element in oldTEXT){
 					var oldStr = oldTEXT[element];
 					if(text.search(oldStr) != -1){
-						var newStr = text.replace(oldStr, TEXT[element]);
+						var newStr = text.replace(oldStr, app.TEXT[element]);
 						listTrObject[obj].textContent = newStr;
 						listTrObject[obj].innerHTML = newStr;
 						listTrObject[obj].text = newStr;
@@ -537,7 +593,9 @@ function changeLang(newLang){
 (function(){
 	ContextMenu = {};
 	ContextMenu.visible = false;
-	ContextMenu.target; // The html element targeted by the context menu.
+	
+	/** the html element targeted by the context menu. */
+	ContextMenu.target; 
 	var setting = [];
 
 	util.addEvent(document, "contextmenu", oncontextmenu);
@@ -550,7 +608,7 @@ function changeLang(newLang){
 		if(target["className"] == "list" || util.hasParent(target, "className", "list")){
 			ContextMenu.target = target;
 
-			// On empeche le comportement par d�faut
+			/** prevent the default behaviour */
 			event.returnValue = false;
 			if(event.preventDefault){
 				event.preventDefault();
@@ -575,7 +633,7 @@ function changeLang(newLang){
 			return;
 		}
 
-		// We prevent the context menu's buttons to be selected
+		/** prevents the context menu's buttons to be selected */
 		if(target.className == "ContextMenu-btn"){
 			event.returnValue = false;
 			if(event.preventDefault){
@@ -629,7 +687,7 @@ function changeLang(newLang){
 			var uCanCreate = true;
 
 			if(util.hasParent(ContextMenu.target, setting[i].target)){
-				// Check if the parent isn't defined too, manage conflicts
+				/** check if the parent isn't defined too, manage conflicts */
 				for(var k = 0; k < setting.length; k++){
 					if(setting[k].target == ContextMenu.target){
 						uCanCreate = false;
@@ -677,7 +735,7 @@ function changeLang(newLang){
    * @function ContextMenu.add
    * @param {object} target - the target of the context menu
    * @param {object} content - An object with the label of an action and a reference to the function which applies the action.
-   * @param {string|object} content.label - The action name, it can be a function which recovers the value of a variable, it just must return a string.
+   * @param {string|object} content.label - The action name, it can be a function which recovers the value of a variable, in this case it must return a string.
    * @param {object} content.action - A reference to a function
    * @todo Manage the case that there's non content send by the user.
    */
@@ -760,7 +818,7 @@ function ListTitle(text, tag){
 		this.tag = tag;
 	}
 	
-	this.defaultInputWidth = 20; // In pixel
+	this.defaultInputWidth = 20; // in pixels
 	this.maxInputWidth = 0;
 	this.inputWidth = 0;
 
@@ -769,29 +827,29 @@ function ListTitle(text, tag){
 	this.isInputEdited = false;
 	this.listIntagAttribute = [];
 	
-	//On cr�e l'objet
+	/** create the object */
 	var container = document.createElement("span");
 	
-	// Create the object inside
+	/** create the object inside */
 	this.intag = document.createElement(this.tag);
 	
 	container.appendChild(this.intag);
 	
-	// The container inherit from the current object
+	/** the container inherit from the current object */
 	util.inherit(container, this);
 	
-	//We set the text
+	/** sets the text */
 	if(typeof(text) != "undefined"){
 		container.setText(text)
 	}
 	
-	// References on the functions which allow to handle the animations
+	/** references on functions which handle animations. */
 	container.REF_EVENT_onmousedown = container.EVENT_onmousedown.bind(container);
 	container.REF_EVENT_ondblclick = container.EVENT_ondblclick.bind(container);
 	container.REF_EVENT_onkeydown = container.EVENT_onkeydown.bind(container);
 	container.REF_EVENT_writing = container.EVENT_writing.bind(container);
 	
-	// return the container
+	/** returns the container */
 	return container;
 }
 
@@ -819,7 +877,7 @@ ListTitle.prototype.setText = function(newText){
 	this.intag = document.createElement(this.tag);
 	this.intag.innerHTML = this.text;
 	
-	//We set the attributes
+	/** sets the attributes */
 	for(var i = 0; i<listAttributes.length; i++){
 		this.intag.setAttribute(listAttributes.item(i).name, listAttributes.item(i).nodeValue);
 	}
@@ -892,13 +950,13 @@ ListTitle.prototype.EVENT_onmousedown = function(event){
 	}	
 	
 	if(button == 1 && this.isInputEdited){
-		//On emp�che le comportement par d�faut de l'�v�nement
+		/** prevents the default behaviour */
 		event.returnValue = false; 
 		if(event.preventDefault) event.preventDefault();
 
 		this.reset();
 		
-		// We remove the "onkeydown" events
+		/** removes the "onkeydown" events */
 		util.removeEvent(document, 'keydown', this.REF_EVENT_onkeydown);
 	}
 }
@@ -913,28 +971,29 @@ ListTitle.prototype.EVENT_ondblclick = function(event){
 	}
 
 	if(button == 1 && (target == this || util.hasParent(target, this))){
-		//On lance l'edition via un input
+		/** launch the edition using an input */
 		this.inputEdit();
 		
-		// we add the "onkeydown" event which will allow to restore the ListTitle
+		/** add the "onkeydown" event which will allow to restore the ListTitle */
 		util.addEvent(document, 'keydown', this.REF_EVENT_onkeydown);
 	}
 }
 
 /**
+ * It back all in its first state if the "enter" key has been pressed
  * @memberof ListTitle.prototype
  */
-ListTitle.prototype.EVENT_onkeydown = function(event){ // On remet tout dans son �tat normal si la touche "Entr�e" a �t� pr�ss�e
+ListTitle.prototype.EVENT_onkeydown = function(event){
 	if(event.keyCode == 13){
 		var target = event.target || event.srcElement;
 		if(this.isInputEdited){
-			//On emp�che le comportement par d�faut de l'�v�nement
+			/** prevents the default behaviour */
 			event.returnValue = false; 
 			if(event.preventDefault) event.preventDefault();
 	
 			this.reset();
 			
-			// We remove the "onclick" event and the "keydown" event
+			/** removes the "onclick" event and the "keydown" event */
 			util.removeEvent(document, 'keydown', this.REF_EVENT_onkeydown);
 		}
 	}
@@ -949,47 +1008,53 @@ ListTitle.prototype.inputEdit = function(){
 
 		this.setText(this.intag.innerHTML);
 
-		//On remplace la balise "p" du dom par une balise 'input type="text"'
-		//Partie 1: on g�re le style
+		/** replaces the inside tag by an input tag whose type is "text". */
+		/** handle the style */
 		newInput = document.createElement("input");
 		this.inheritStyleInput(newInput);
 		
-		//Partie 2: on efface la balise de texte pour mettre un input � la place
+		/** removes the text tag to put an input instead */
 		this.innerHTML = "";
 		newInput.setAttribute("type", "text");
 		this.appendChild(newInput);
-		newInput.focus(); //On met le focus sur l'input text
-		newInput.value = this.text; //On place le texte apr�s le focus afin que le curseur soit plac� � la fin du texte
 		
-		//Partie 3: on ajoute un �venement sur l'input qui permet de l'agrandir si on a plus de lettres qu'au d�part.
+		/** puts the focus on the text input */
+		newInput.focus();
+		
+		/** puts the text after the focus in order to the cursor is placed at the end of the text */
+		newInput.value = this.text;
+		
+		/** adds an event on the input which allows to enlarge it if there's more letter than at the beginning */
 		util.addEvent(document, 'keydown', this.REF_EVENT_writing);
 		this.listIntagAttribute = this.intag.attributes;
 		this.intag = newInput;
 	}
 }
 
-//NOTE: varie selon le caract�re, � rendre plus pr�cis.
 /**
  * @memberof ListTitle.prototype
+ * @todo varie selon le caract�re, � rendre plus pr�cis.
  */
 ListTitle.prototype.EVENT_writing = function(event){
 	var input = this.intag;		
 	
 	if(this.inputWidth == 0){
-		// We calculate the width of a medium char
+		/** calculates the width of a medium char */
 		var currentWidth = parseInt(input.style.width);
 		
-		if(event.keyCode != 8 && event.keyCode != 46){ // We add letters
+		if(event.keyCode != 8 && event.keyCode != 46){ 
+			/** adds letters */
 			if(this.maxInputWidth == 0 || currentWidth + parseInt(this.oneCharWidth) <= this.maxInputWidth){
-				input.style.width = currentWidth + parseInt(this.oneCharWidth) + "px"; 	//TAILLE
+				input.style.width = currentWidth + parseInt(this.oneCharWidth) + "px"; 	// size
 			}else{
-				input.style.width = this.maxInputWidth + "px"; 	//TAILLE
+				input.style.width = this.maxInputWidth + "px"; 	// size
 			}
-		}else{ // We remove letters
+		}else{ 
+			/** removes letters */
 			if(this.maxInputWidth == 0 || currentWidth - parseInt(this.oneCharWidth) <= this.maxInputWidth){
-				input.style.width = currentWidth - parseInt(this.oneCharWidth) + "px"; 	//TAILLE
+				input.style.width = currentWidth - parseInt(this.oneCharWidth) + "px"; 	// size
 			}else{
-				input.style.width = this.maxInputWidth + "px"; 	//TAILLE
+				input.style.width = this.maxInputWidth + "px"; 	// size
 			}
 		}
 	}
@@ -1003,14 +1068,14 @@ ListTitle.prototype.EVENT_writing = function(event){
 ListTitle.prototype.reset = function(){
 	this.isInputEdited = false;
 
-	//On remet en �tat la balise
+	/** puts back the tag in place */
 	this.text = this.intag.value;
 	this.innerHTML = "";
 	this.intag = document.createElement(this.tag);
 	this.intag.innerHTML = this.text;
 	
-	//We set the attributes
-	for(var i = 0; i<this.listIntagAttribute.length; i++){
+	/** sets the attributes */
+ 	for(var i = 0; i<this.listIntagAttribute.length; i++){
 		this.intag.setAttribute(this.listIntagAttribute.item(i).name, this.listIntagAttribute.item(i).nodeValue);
 	}
 	
@@ -1027,10 +1092,10 @@ ListTitle.prototype.inheritStyleInput = function(newInput){
 	var oldContent = this.intag;
 	var textOldContent = oldContent.firstChild;
 	
-	//AFFICHAGE
+	/** display */
 	newInput.style.display = "block";
 	
-	//TAILLE
+	/** size */
 	if(this.inputWidth == 0){
 		
 		if(typeof(this.maxInputWidth) == "string"){ // We convert the maxInputWidth if it's a string
@@ -1059,117 +1124,156 @@ ListTitle.prototype.inheritStyleInput = function(newInput){
 		newInput.style.width = this.inputWidth;
 	}
 	
-	//MARGIN
-	if(util.getStyle(oldContent, "margin-left") != "0px"){ //Gauche
+	/** margin */
+	if(util.getStyle(oldContent, "margin-left") != "0px"){ // left
 		newInput.style.marginLeft = util.getStyle(oldContent, "margin-left");
 	}
-	if(util.getStyle(oldContent, "margin-right") != "0px"){ //Droite
+	if(util.getStyle(oldContent, "margin-right") != "0px"){ // right
 		newInput.style.marginRight = util.getStyle(oldContent, "margin-right");
 	}
 	
-	if(util.getStyle(parentNode, "text-align") == "center"){ //Centrage
+	if(util.getStyle(parentNode, "text-align") == "center"){ // center
 		newInput.style.margin = "0 auto";
 	}
 	
-	if(util.getStyle(oldContent, "margin-top") != "0px"){ //Haut
+	if(util.getStyle(oldContent, "margin-top") != "0px"){ // top
 		newInput.style.marginTop = util.getStyle(oldContent, "margin-top");
 	}
-	if(util.getStyle(oldContent, "margin-bottom") != "0px"){ //Bas
+	if(util.getStyle(oldContent, "margin-bottom") != "0px"){ // bottom
 		newInput.style.marginBottom = util.getStyle(oldContent, "margin-bottom");
 	}
 	
-	//FONT
+	/** font */
 	newInput.style.fontSize = util.getStyle(oldContent, "font-size");
 	newInput.style.fontWeight = util.getStyle(oldContent, "font-weight");
 	newInput.style.fontFamily = util.getStyle(oldContent, "font-family");
 	
-	//ALIGNEMENT DU TEXTE
-	if(util.getStyle(parentNode, "text-align") == "left"){ //Gauche
+	/** text align */
+	if(util.getStyle(parentNode, "text-align") == "left"){ // left
 		newInput.style.textAlign = "left";
 	}
-	if(util.getStyle(parentNode, "text-align") == "right"){ //Droite
+	if(util.getStyle(parentNode, "text-align") == "right"){ // right
 		newInput.style.textAlign = "right";
 	}
-	if(util.getStyle(parentNode, "text-align") == "center"){ //Centrage
+	if(util.getStyle(parentNode, "text-align") == "center"){ // center
 		newInput.style.textAlign = "center";
 	}
-	if(util.getStyle(parentNode, "text-align") == "justify"){ //Justifi�
+	if(util.getStyle(parentNode, "text-align") == "justify"){ // justify
 		newInput.style.textAlign = "justify";
 	}
 };/**
- * Create a list.
+ * Provides lists.
  * @constructor
- * @param {string} [title] - The title of the list.
- * @param {string} [textBtnFooter] - The text displayed in the footer of the list.
+ * @param {string} [title] - The list title.
+ * @param {string} [textBtnFooter] - The text displayed in the list footer.
  * @returns {object} list - The DOM object representing the list.
  */
 function List(title, textBtnFooter){
 	List.counter++;
 
 	if(typeof(title) == "undefined"){
-		title = TEXT["New list"];
+		title = app.TEXT["New list"];
 	}
 
 	if(typeof(textBtnFooter) == "undefined"){
-		textBtnFooter = TEXT["Add a card"] + "...";
+		textBtnFooter = app.TEXT["Add a card"] + "...";
 	}
 
 	var list = document.createElement("div");
 	list.className = "list";
 
-	// HEADER
+	/** header */
 	var listHeader = document.createElement("div");
 	listHeader.className = "list-header";
 
-	// title
-	this.labelHead = new ListTitle(title, "h2");
-	this.labelHead.style.display = "inline-block";
+	/** 
+	 * @member {object} List.listTitle 
+	 */
+	this.listTitle = new ListTitle(title, "h2");
+	this.listTitle.style.display = "inline-block";
 
-	// Manage the overflow of the title
-	this.labelHead.intag.style.overflow = "hidden";        //
-	this.labelHead.intag.style.whiteSpace = "nowrap";      // A g�rer autrement (mettre dans le CSS)
-	this.labelHead.intag.style.textOverflow = "ellipsis";  //
-	this.labelHead.setAttribute("data-translatable", true);
-	this.labelHead.setInputEditable(true);
-	listHeader.appendChild(this.labelHead);
+	/** manages the overflow of the title */
+	this.listTitle.intag.style.overflow = "hidden";        //
+	this.listTitle.intag.style.whiteSpace = "nowrap";      // A gérer autrement (mettre dans le CSS)
+	this.listTitle.intag.style.textOverflow = "ellipsis";  //
+	this.listTitle.setAttribute("data-translatable", true);
+	this.listTitle.setInputEditable(true);
+	listHeader.appendChild(this.listTitle);
 
 	list.appendChild(listHeader);
 
-	// BODY
-	this.cardZone = document.createElement("div");
-	this.cardZone.className = "list-cardZone";
-	list.appendChild(this.cardZone);
+	/** 
+	 * The list body which contains cards.
+	 * @member {object} List.cardArea 
+	 */
+	this.cardArea = document.createElement("div");
+	this.cardArea.className = "list-cardArea";
+	list.appendChild(this.cardArea);
 
-	// FOOTER
+	/** 
+	 * The "add list" button in the list footer.
+	 * @member {object} List.btnFooter
+	 */
 	this.btnFooter = document.createElement("a");
 	this.btnFooter.className = "list-footer";
 	this.btnFooter.setAttribute("data-translatable", true);
 	this.btnFooter.innerHTML = textBtnFooter;
 	list.appendChild(this.btnFooter);
 
-	document.getElementsByClassName("body")[0].insertBefore(list, BTN_ADDLIST);
+	document.getElementsByClassName("body")[0].insertBefore(list, app.BTN_ADDLIST);
 
-	// We fix the height of the list's title
-	this.labelHead.style.height = this.labelHead.offsetHeight + "px";
+	/** fix the height of the list's title */
+	this.listTitle.style.height = this.listTitle.offsetHeight + "px";
 
-	// Now than the element is embedded in the DOM, we fixe
-	// the width Label's input
-	this.labelHead.style.width = "99%"; //On enleve 1 par s�curit� rapport aux arrondis
-	this.labelHead.inputWidth = "100%";
+	/** now that the element is embedded in the DOM, we fix the width Label's input */
+	this.listTitle.style.width = "99%"; // subtracts 1 by security, due to rounding
+	this.listTitle.inputWidth = "100%";
 
+	/** 
+	 * The position number of the current list according to the others.
+	 * @member {object} List.position
+	 */
 	this.position = List.counter;
+	
+	/** 
+	 * It allows to now if the list is dragged by the user.
+	 * @member {object} List.dragged
+	 */
 	this.dragged = false;
+	
+	/** 
+	 * It stores the horizontal offset of the list.
+	 * @member {object} List.offsetX
+	 */
 	this.offsetX = 0;
+	
+	/** 
+	 * It stores the vertical offset of the list.
+	 * @member {object} List.offsetX
+	 */
 	this.offsetY = 0;
+	
+	/** 
+	 * It allows to now if the list is clicked by the user.
+	 * @member {object} List.clicked
+	 */
 	this.clicked = false;
-	this.dropZone = 'undefined';
+	
+	/** 
+	 * It stores the node which represents the drop area of the list.
+	 * @member {object} List.dropArea
+	 */
+	this.dropArea = 'undefined';
 
-	/** Attributes used to handle cards */
+	/** 
+	 * It is used to handle cards.
+	 * @member {object} List.cardList
+	 */
 	this.cardList = new Array;
 
 	util.inherit(list, this);
 
-	/** References to the functions which handle the animations */
+	/** references on functions which handle animations. */
 	list.REF_EVENT_onmousedown = list.EVENT_onmousedown.bind(list);
 	list.REF_EVENT_onmouseup = list.EVENT_onmouseup.bind(list);
 	list.REF_EVENT_onmousemove = list.EVENT_onmousemove.bind(list);
@@ -1181,8 +1285,8 @@ function List(title, textBtnFooter){
 
 	/** add the context menu */
 	ContextMenu.add(list, 
-		{label: function(){ return TEXT["Add a card"] }, action: list.addCard.bind(list)},
-		{label: function(){ return TEXT["Remove the list"] }, action: list.remove.bind(list)}
+		{label: function(){ return app.TEXT["Add a card"] }, action: list.addCard.bind(list)},
+		{label: function(){ return app.TEXT["Remove the list"] }, action: list.remove.bind(list)}
 	)
 
 	return list;
@@ -1213,27 +1317,25 @@ List.prototype.addCard = function(cardOrBool, bool){
 
 	if(typeof(cardOrBool) != "undefined" && typeof(cardOrBool) != "boolean"){
 		card = cardOrBool;
-	}else{
-		card = new Card(this);
-	}
-	
-	if(typeof(cardOrBool) != "undefined" && typeof(cardOrBool) != "boolean"){
-		var childs = this.cardZone.childNodes;
+		
+		var childs = this.cardArea.childNodes;
 		for(var i = 0; i < childs.length; i++){
 			if(childs[i] == card){
 				alreadyInDom = true;
 			}
 		}
+	}else{
+		card = new Card(this);
 	}
-
+	
 	if(!alreadyInDom){
-		this.cardZone.appendChild(card);
+		this.cardArea.appendChild(card);
 		card.setEditable(editable);
 	}
 
 	var index = this.cardList.length;
 	this.cardList[index] = card;
-	card.cardText.focus();
+	card.cardText.focus(); // A VIRER
 }
 
 /**
@@ -1252,13 +1354,13 @@ List.prototype.removeCard = function(card){
  * @memberof List.prototype
  */
 List.prototype.remove = function(){
-	/** remove the HTMLElement */
+	/** removes the HTMLElement */
 	this.parentNode.removeChild(this);
 	
-	/** remove the context menu */
+	/** removes the context menu */
 	ContextMenu.remove(this)
 	
-	/** decrement the counter */
+	/** decrements the counter */
 	List.counter--;
 }
 
@@ -1269,7 +1371,7 @@ List.prototype.remove = function(){
 List.prototype.EVENT_onmousedown = function(event){
 	var target = event.target || event.srcElement;
 
-	if(!this.labelHead.isInputEdited){
+	if(!this.listTitle.isInputEdited){
 
 		if(!event.which && event.button){ // Firefox, Chrome, etc...
 			var button = event.button;
@@ -1281,7 +1383,7 @@ List.prototype.EVENT_onmousedown = function(event){
 			var that = this;
 			this.clicked = true;
 
-			/** Prevent the default behavior */
+			/** prevents the default behaviour */
 			event.returnValue = false;
 			if(event.preventDefault){
 				event.preventDefault();
@@ -1290,17 +1392,17 @@ List.prototype.EVENT_onmousedown = function(event){
 			this.dragged = true;
 			this.style.zIndex = 99;
 
-			/** We remove the "onmousedown" event */
+			/** removes the "onmousedown" event */
 			util.removeEvent(document, "mousedown", this.REF_EVENT_onmousedown);
 
-			/** We add the "onmousemove" event */
+			/** adds the "onmousemove" event */
 			util.addEvent(document, "mousemove", this.REF_EVENT_onmousemove);
 
-			// On calcul la position de la souris dans l'objet afin de la fixer � l'endroit o� elle le saisie en enregistrant le calcul dans les variable "decal".
+			/** calculates the mouse position in the object in order to set the object where the mouse catch it, recording the result in the "offset" variables. */ 
 			var mouseX = event.clientX + document.documentElement.scrollLeft + document.body.scrollLeft;
 			var mouseY = event.clientY + document.documentElement.scrollTop + document.body.scrollTop;
 
-			/** Calculate the offsets */
+			/** calculates the offsets */
 			var elementX = 0;
 			var elementY = 0;
 			var element = this;
@@ -1313,27 +1415,27 @@ List.prototype.EVENT_onmousedown = function(event){
 			this.offsetX += mouseX - elementX;
 			this.offsetY += mouseY - elementY;
 
-			/** Create the drop zone */
-			this.dropZone = document.createElement("div");
-			this.dropZone.style.height = util.getStyle(this, "height");
-			this.dropZone.style.width = util.getStyle(this, "width");
-			this.dropZone.style.float = "left";
-			this.dropZone.className = "list-dropZone";
-			this.dropZone.position = this.position;
-			this.dropZone.setPosition = function(newPosition){ that.dropZone.position = newPosition; }
-			this.parentNode.insertBefore(this.dropZone, this);
+			/** creates the drop area */
+			this.dropArea = document.createElement("div");
+			this.dropArea.style.height = util.getStyle(this, "height");
+			this.dropArea.style.width = util.getStyle(this, "width");
+			this.dropArea.style.float = "left";
+			this.dropArea.className = "list-dropArea";
+			this.dropArea.position = this.position;
+			this.dropArea.setPosition = function(newPosition){ that.dropArea.position = newPosition; }
+			this.parentNode.insertBefore(this.dropArea, this);
 			
-			/** turn the list in absolute position */
+			/** turns the list in absolute position */
 			this.style.left = elementX - parseFloat(util.getStyle(this, "margin-left")) + 'px';
 			this.style.top = elementY - parseFloat(util.getStyle(this, "margin-top")) + 'px';
 			this.style.width = this.offsetWidth + "px";
 			this.style.position = "absolute";
 			this.className = "list-dragged";
 			
-			/** We create the masks */
+			/** creates the masks */
 			List.createMask();
 
-			/** We add the "onmouseover" event */
+			/** adds the "onmouseover" event */
 			util.addEvent(document, "mouseover", this.REF_EVENT_onmouseover);
 		}
 	}
@@ -1345,11 +1447,11 @@ List.prototype.EVENT_onmousedown = function(event){
  */
 List.prototype.EVENT_onmousemove = function(event){
 	if(this.dragged){
-		// We get the mouse position
+		/** gets the mouse position */
 		var x = event.clientX + (document.documentElement.scrollLeft + document.body.scrollLeft);
 		var y = event.clientY + (document.documentElement.scrollTop + document.body.scrollTop);
 
-		// Apply different offsets
+		/** applies the different offsets */
 		x -= this.offsetX;
 		y -= this.offsetY;
 
@@ -1371,42 +1473,42 @@ List.prototype.EVENT_onmouseup = function(event){
 		var button = event.which;
 	}
 
-	if(button == 1 && this.dragged){
-		// We remove the "onmousemove" event
-		util.removeEvent(document, "mousemove", this.REF_EVENT_onmousemove);
-
-		// We add the "onmousedown" event
-		util.addEvent(document, "mousedown", this.REF_EVENT_onmousedown);
-
-		// On remet les attributs � 0
-		this.dragged = false;
-		this.offsetX = 0;
-		this.offsetY = 0;
-
-		// We remove the "onmouseover" event
-		util.removeEvent(document, "mouseover", this.REF_EVENT_onmouseover);
-
-		// On supprime les mask des listes
-		List.removeMask()
-
-		// On remet tout en �tat
-		this.removeAttribute("style");
-		this.className = "list";
-		document.getElementsByClassName("body")[0].replaceChild(this, this.dropZone);
-		this.dropZone = 'undefined';
-	}
-
 	if(button == 1){
 		this.clicked = false;
-	}
+		
+		/** handles the list */
+		if(this.dragged){
+			/** removes the "onmousemove" event */
+			util.removeEvent(document, "mousemove", this.REF_EVENT_onmousemove);
 
-	if(button == 1 && target == this.btnFooter){
-		this.addCard();
+			/** adds the "onmousedown" event */
+			util.addEvent(document, "mousedown", this.REF_EVENT_onmousedown);
+
+			/** puts back the attributes to 0 */
+			this.dragged = false;
+			this.offsetX = 0;
+			this.offsetY = 0;
+
+			/** removes the "onmouseover" event */
+			util.removeEvent(document, "mouseover", this.REF_EVENT_onmouseover);
+
+			/** remove the lists masks */
+			List.removeMask()
+
+			/** puts back in place */
+			this.removeAttribute("style");
+			this.className = "list";
+			document.getElementsByClassName("body")[0].replaceChild(this, this.dropArea);
+			this.dropArea = 'undefined';
+		}else if(target == this.btnFooter){
+			/** the button in the list footer is clicked */
+			this.addCard();
+		}
 	}
 }
 
 /**
- * Over the other lists
+ * Flies over the other lists
  * @memberof List.prototype
  */
 List.prototype.EVENT_onmouseover = function(event){
@@ -1414,43 +1516,48 @@ List.prototype.EVENT_onmouseover = function(event){
 
 	if(maskTarget.className == "list-mask"){
 
-		/** the rollover position is recorded */
+		/** the overflew position is recorded */
 		var targetPos = maskTarget.hiddenList.position;
 
-		/** calculate the difference between lists */
+		/** calculates the difference between lists */
 		var difference = targetPos - this.position;
 
-		/*
-			On insert la list dragg�e apr�s la liste survol�e
-			si la position de la liste survol�e est sup�rieure
-			� celle dragg�.
-		*/
+		/** 
+		 * inserts the dragged list after the overflew list 
+		 * if the position of the overflew list is greater than the dragged one 
+		 */
 		if(difference > 0){
-			maskTarget.parentNode.insertBefore(this.dropZone, maskTarget.hiddenList.nextSibling);
-
-			// On diminue de 1 la position de toutes les listes positionn�es avant si �a n'a pas �tait un �change entre deux listes qui �taient c�te � c�te.
+			maskTarget.parentNode.insertBefore(this.dropArea, maskTarget.hiddenList.nextSibling);
+			
+			/**
+			 * decreases of 1 the position of all lists which are before the current one
+			 * if it wasn't an exchange between two lists which were side by side.
+			 */
 			if(targetPos != this.position + 1){
-				var allMask = document.getElementsByClassName("list-mask"); //On r�cup�re tous les mask.
+				var allMask = document.getElementsByClassName("list-mask"); // gets all masks
 				for(var i = 0; i < allMask.length; i++){
 					var listPosition = allMask[i].hiddenList.position;
 					if(listPosition <= targetPos){
 						allMask[i].hiddenList.setPosition(listPosition - 1);
 					}
 				}
-			}else{ // else we change the position number of the target and its mask style.
+			}else{
+				/** else we change the position number of the target and its mask style. */
 				maskTarget.hiddenList.setPosition(this.position);
 			}
 		}
-
-		/**
-			On insert la list dragg�e avant la liste survol�e
-			si la position de la liste survol�e est inf�rieure
-			� celle dragg�.
-		*/
+		
+		/** 
+		 * inserts the dragged list after the overflew list 
+		 * if the position of the overflew list is smaller than the dragged one 
+		 */
 		if(difference < 0){
-			maskTarget.parentNode.insertBefore(this.dropZone, maskTarget.hiddenList);
+			maskTarget.parentNode.insertBefore(this.dropArea, maskTarget.hiddenList);
 
-			// On red�fini les positions de toutes les listes si �a n'a pas �tait un �change entre deux listes qui �taient c�te � c�te.
+			/**
+			 * defines again the positions of all lists
+			 * if it wasn't an exchange between two lists which were side by side.
+			 */
 			if(targetPos != this.position - 1){
 				var allMask = document.getElementsByClassName("list-mask"); // get all the masks
 				for(var i = 0; i < allMask.length; i++){
@@ -1459,15 +1566,16 @@ List.prototype.EVENT_onmouseover = function(event){
 						allMask[i].hiddenList.setPosition(listPosition + 1);
 					}
 				}
-			}else{ // else we change the position number of the target and its mask style.
+			}else{
+				/** else we change the position number of the target and its mask style. */
 				maskTarget.hiddenList.setPosition(this.position);
 			}
 		}
 
-		/** change the position number of the dragged list */
+		/** changes the position number of the dragged list */
 		this.setPosition(targetPos);
 
-		/** set the mask style */
+		/** sets the mask style */
 		maskTarget.style.left = maskTarget.hiddenList.offsetLeft + "px";
 		maskTarget.style.top = maskTarget.hiddenList.offsetTop + "px";
 	}
@@ -1479,9 +1587,9 @@ List.prototype.EVENT_onmouseover = function(event){
 List.prototype.cardNumber = function(){
 	var count = 0;
 
-	var childs = this.cardZone.childNodes;
+	var childs = this.cardArea.childNodes;
 	for(var i = 0; i<childs.length; i++){
-		if(childs[i].className != "card-dropZone"){
+		if(childs[i].className != "card-dropArea"){
 			count++;
 		}
 	}
@@ -1508,11 +1616,11 @@ List.createMask = function(emptyListOrList){
 	for(var i = 0; i<list.length; i++){
 		var create = true;
 
-		/** We look for the empty lists */
+		/** looks for the empty lists */
 		if(emptyList){
 			var childs = list[i].childNodes;
 			for(var j = 0; j<childs.length; j++){
-				if(childs[j].className == "list-cardZone"){
+				if(childs[j].className == "list-cardArea"){
 					var childNumber = childs[j].childNodes.length;
 					if(childNumber != 0){
 						create = false;
@@ -1521,14 +1629,14 @@ List.createMask = function(emptyListOrList){
 			}
 		}
 
-		/** We check if it's the given list */
+		/** checks if it's the given list */
 		if(typeof(givenList) != "undefined"){
 			if(list[i] != givenList){
 				create = false;
 			}
 		}
 
-		/** We check if there is not already a mask */
+		/** checks if there is not already a mask */
 		if(create){
 			var allMask = document.getElementsByClassName("list-mask");
 			for(var j = 0; j<allMask.length; j++){
@@ -1606,7 +1714,7 @@ function Card(parentList, text){
 		throw "The card must have a parent list to be create.";
 	}
 
-	// we define as draggable all the other cards
+	/** defines as draggable all the other cards */
 	if(Card.cardList.length > 0){
 		for(var element in Card.cardList){
 			if(Card.cardList[element].editable){
@@ -1621,28 +1729,28 @@ function Card(parentList, text){
 	this.text = "";
 	this.textHtml = "";
 
-	//We create the card in the DOM
+	/** creates the card in the DOM */
 	var card = document.createElement("div");
 	card.className = "card";
 
-	//The text
+	/** the text */
 	this.cardText = document.createElement("div");
 	this.cardText.className = "card-text";
 	this.cardText.setAttribute("data-translatable", true);
 	card.appendChild(this.cardText);
 
-	// The edit bar
+	/** the edit bar */
 	this.editBar = document.createElement("div");
 	this.editBar.style.top = "100%";
 	this.editBar.className = "card-editBar";
 	card.appendChild(this.editBar);
 
-	// Close Button
+	/** close Button */
 	this.btnClose = document.createElement("div");
 	this.btnClose.className = "card-btnClose";
 	this.editBar.appendChild(this.btnClose);
 
-	// Edit Button
+	/** edit Button */
 	this.btnEdit = document.createElement("div");
 	this.btnEdit.className = "card-btnEdit";
 	this.editBar.appendChild(this.btnEdit);
@@ -1650,51 +1758,50 @@ function Card(parentList, text){
 	if(typeof(text) != "undefined"){
 		this.setText(text);
 	}else{
-		this.setText(TEXT["New card"]);
+		this.setText(app.TEXT["New card"]);
 	}
 
-	this.decalX = 0;
-	this.decalY = 0;
-	this.dropZone;
+	this.offsetX = 0;
+	this.offsetY = 0;
+	this.dropArea;
 	this.dragged = false;
 	this.draggable = false;
 	this.editable = false;
 
-	// We hide the edit bar
+	/** hides the edit bar */
 	this.anim;
 	this.editBarVisible = false;
 	this.editBarAnimated = false;
 	this.hideEditBar();
 
-	// The card inherit from the current object
+	/** the card inherit from the current object */
 	util.inherit(card, this);
 
-	// References on the functions wich allow to handle animations.
+	/** references on functions which handle animations. */
 	card.REF_EVENT_onmousedown = card.EVENT_onmousedown.bind(card);
 	card.REF_EVENT_onmousemove = card.EVENT_onmousemove.bind(card);
 	card.REF_EVENT_onmouseup = card.EVENT_onmouseup.bind(card);
 	card.REF_EVENT_onmouseover = card.EVENT_onmouseover.bind(card);
 	card.REF_EVENT_onkeydown = card.EVENT_onkeydown.bind(card);
 
-	// Events
+	/** events */
 	util.addEvent(document, "mousedown", card.REF_EVENT_onmousedown);
 	util.addEvent(document, "mouseover", card.REF_EVENT_onmouseover);
 	util.addEvent(document, "mouseup", card.REF_EVENT_onmouseup);
 	util.addEvent(document, "mousemove", card.REF_EVENT_onmousemove);
 
-	// We set the current card as editable
+	/** set the current card as editable */
 	card.setEditable(true);
 	
-	// Add context menu
-	
+	/** adds the context menu */
 	ContextMenu.add(card, 
-		{label: function(){ return TEXT["Add a card"]}, action: function(){card.parentList.addCard()}},
-		{label: function(){ return TEXT["Undo"]}, action: function(){}}, 
-		{label: function(){ return TEXT["Redo"]}, action: function(){}},
-		{label: function(){ return TEXT["Remove the list"]}, action: function(){card.parentList.remove()}}
+		{label: function(){ return app.TEXT["Add a card"]}, action: function(){card.parentList.addCard()}},
+		{label: function(){ return app.TEXT["Undo"]}, action: function(){}}, 
+		{label: function(){ return app.TEXT["Redo"]}, action: function(){}},
+		{label: function(){ return app.TEXT["Remove the list"]}, action: function(){card.parentList.remove()}}
 	)
 
-	// We return the created card
+	/** return the created card */
 	return card;
 }
 
@@ -1723,12 +1830,12 @@ Card.prototype.setEditable = function(bool){
 		this.editable = true;
 		this.setDraggable(false);
 		this.hideEditBar(12);
-
+		
 		this.cardText.contentEditable = true;
 		this.cardText.style.cursor = "text";
 		this.cardText.focus();
 
-		// Allow to put the Caret at the end of the text
+		/** allows to put the Caret at the end of the text */
 		if (document.getSelection) {    // all browsers, except IE before version 9
 			var sel = document.getSelection ();
 			// sel is a string in Firefox and Opera,
@@ -1739,10 +1846,10 @@ Card.prototype.setEditable = function(bool){
 			}
 		}
 		//sel.collapse(this.cardText.firstChild, this.cardText.textContent.length);
-
-		// We add the "onkeydown" event
+		
+		/** adds the "onkeydown" event */
 		util.addEvent(document, "keydown", this.REF_EVENT_onkeydown);
-	}else if(this.editable){
+	}else if(!bool && this.editable){
 		var isEmpty = /^\s*$/gi;
 		if(isEmpty.test(this.getText())){
 			this.cardText.blur();
@@ -1750,12 +1857,12 @@ Card.prototype.setEditable = function(bool){
 		}else{
 			this.editable = false;
 			this.setDraggable(true);
+			this.cardText.blur();
 			this.cardText.contentEditable = false;
 			this.cardText.style.cursor = "default";
-			this.cardText.blur();
 			this.cardText.innerHTML = this.textHtml;
 
-			// We remove the "onkeydown" event
+			/** removes the "onkeydown" event */
 			util.removeEvent(document, "keydown", this.REF_EVENT_onkeydown);
 		}
 	}
@@ -1765,7 +1872,7 @@ Card.prototype.setEditable = function(bool){
  * @memberof Card.prototype
  */
 Card.prototype.remove = function(){
-	// We remove the card from the static list
+	/** removes the card from the static list */
 	if(Card.cardList.length > 0){
 		for(var element in Card.cardList){
 			if(Card.cardList[element] == this){
@@ -1774,13 +1881,13 @@ Card.prototype.remove = function(){
 		}
 	}
 
-	// We remove the context menu
+	/** removes the context menu */
 	ContextMenu.remove(this)
 	
-	// We remove the "onmousedown" event
+	/** removes the "onmousedown" event */
 	util.removeEvent(document, "mousedown", this.REF_EVENT_onmousedown);
 
-	// We remove the current card
+	/** removes the current card */
 	this.parentNode.removeChild(this);
 }
 
@@ -1798,7 +1905,7 @@ Card.prototype.setText = function(newText){
  * @memberof Card.prototype
  */
 Card.prototype.getText = function(){
-	// Delete the style tags
+	/** Delete the style tags */
 	var childs = this.cardText.childNodes;
 
 	for(var i = 0; i < childs.length; i++){
@@ -1829,9 +1936,9 @@ Card.prototype.EVENT_onmousedown = function(event){
 		if(this.editable && target != this.cardText){
 			this.setDraggable(true);
 		}
-
+		
 		if(this.draggable && (target == this || util.hasParent(target, this))){
-			//On empèche le comportement par défaut
+			/** prevents the default behaviour */
 			event.returnValue = false;
 			if(event.preventDefault){
 				event.preventDefault();
@@ -1841,11 +1948,11 @@ Card.prototype.EVENT_onmousedown = function(event){
 			this.style.zIndex = 99;
 			this.hideEditBar(2);
 
-			//On calcul la position de la souris dans l'objet afin de la fixer à l'endroit où elle le saisie en enregistrant le calcul dans les variable "decal".
+			/** calculates the mouse position in the object in order to set the object where the mouse catch it, recording the result in the "offset" variables. */ 
 			var mouseX = event.clientX + document.documentElement.scrollLeft + document.body.scrollLeft;
 			var mouseY = event.clientY + document.documentElement.scrollTop + document.body.scrollTop;
 
-			//On calcul les eléments extérieurs à l'objet
+			/** calculates the offsets offsets of the object */
 			var elementX = 0;
 			var elementY = 0;
 			var element = this;
@@ -1855,17 +1962,17 @@ Card.prototype.EVENT_onmousedown = function(event){
 				element = element.offsetParent;
 			}while(element && util.getStyle(element, 'position') != 'absolute'  && util.getStyle(element, 'position') != 'fixed');
 
-			this.decalX += mouseX - elementX;
-			this.decalY += mouseY - elementY;
+			this.offsetX += mouseX - elementX;
+			this.offsetY += mouseY - elementY;
 
-			// We create the drop zone
-			this.dropZone = document.createElement("div");
-			this.dropZone.style.height = util.getStyle(this, "height");
-			this.dropZone.style.width = util.getStyle(this, "width");
-			this.dropZone.className = "card-dropZone";
-			this.parentNode.insertBefore(this.dropZone, this);
+			/** creates the drop area */
+			this.dropArea = document.createElement("div");
+			this.dropArea.style.height = util.getStyle(this, "height");
+			this.dropArea.style.width = util.getStyle(this, "width");
+			this.dropArea.className = "card-dropArea";
+			this.parentNode.insertBefore(this.dropArea, this);
 
-			// On transforme l'objet parent en position absolute
+			/** turn the parent object in absolute position */
 			this.style.width = util.getStyle(this, "width");
 			var marginHeight = (this.offsetHeight - parseFloat(util.getStyle(this, "height")))/2
 			this.style.left = elementX + 'px';
@@ -1874,15 +1981,20 @@ Card.prototype.EVENT_onmousedown = function(event){
 			this.style.width = util.getStyle(this, "width");
 			this.className = "card-caught";
 
-			this.parentList.removeCard(this); // We remove the card from the parentList
+			/** removes the card from the parentList */
+			this.parentList.removeCard(this); 
 
-			Card.createMask(); // We create the Cards's masks
-			List.createMask(true); // We create the masks for the empty lists
+			/** creates the masks Cards */
+			Card.createMask(); 
+			
+			/** creates the masks for the empty lists */
+			List.createMask(true); 
 			if(this.parentList.cardNumber() == 1){
-				List.createMask(this.parentList); // We create a mask for the parentList if the current card is alone in it
+				/** creates a mask for the parentList if the current card is alone in it. */
+				List.createMask(this.parentList); 
 			}
 
-			// We remove the "onmousedown" event
+			/** removes the "onmousedown" event */
 			util.removeEvent(document, "mousedown", this.REF_EVENT_onmousedown);
 		}
 	}
@@ -1895,13 +2007,13 @@ Card.prototype.EVENT_onmousedown = function(event){
 Card.prototype.EVENT_onmousemove = function(event){
 	var target = event.target || event.srcElement;
 	if(this.dragged){
-		// On récupère la position de la souris
+		/** gets the mouse coordinates */
 		var x = event.clientX + (document.documentElement.scrollLeft + document.body.scrollLeft);
 		var y = event.clientY + (document.documentElement.scrollTop + document.body.scrollTop);
 
-		// On applique les différents décalages
-		x -= this.decalX;
-		y -= this.decalY;
+		/** applies the different offsets */
+		x -= this.offsetX;
+		y -= this.offsetY;
 
 		this.className = "card-dragged";
 		this.style.left = x + 'px';
@@ -1922,46 +2034,47 @@ Card.prototype.EVENT_onmouseup = function(event){
 		var button = event.which;
 	}
 
-	if(button == 1 && this.dragged){
-		/** prevent the default behavior */
-		event.returnValue = false;
-		if(event.preventDefault){
-			event.preventDefault();
+	if(button == 1){
+		if(this.dragged){
+			/** prevent the default behaviour */
+			event.returnValue = false;
+			if(event.preventDefault){
+				event.preventDefault();
+			}
+
+			/** puts back the attributes to 0 */
+			this.dragged = false;
+			this.offsetX = 0;
+			this.offsetY = 0;
+
+			/** remove the masks */
+			Card.removeMask()
+			List.removeMask()
+
+			/** puts back in place */
+			this.removeAttribute("style");
+			this.className = "card";
+			this.dropArea.parentNode.replaceChild(this, this.dropArea);
+
+			/** handle the parentList property */
+			this.parentList.removeCard(this); // removes the card from the parentList
+			this.parentList = this.parentNode.parentNode; // changes the "parentList" attribute
+			this.parentList.addCard(this); // adds the card to the new parent list
+
+			this.dropArea = 'undefined';	// erases the "dropArea" attribute
+
+			/** adds the "onmousedown" event */
+			util.addEvent(document, "mousedown", this.REF_EVENT_onmousedown);
+		}else if(target == this.btnEdit){
+			this.setEditable(true);
+		}else if(target == this.btnClose){
+			this.remove();
 		}
-
-		// On remet les attributs à 0
-		this.dragged = false;
-		this.decalX = 0;
-		this.decalY = 0;
-
-		/** remove the masks */
-		Card.removeMask()
-		List.removeMask()
-
-		//On remet tout en état
-		this.removeAttribute("style");
-		this.className = "card";
-		this.dropZone.parentNode.replaceChild(this, this.dropZone);
-
-		/** handle the parentList property */
-		this.parentList.removeCard(this); // remove the card from the parentList
-		this.parentList = this.parentNode.parentNode; // change the "parentList" attribute
-		this.parentList.addCard(this); // add the card to the new parent list
-
-		this.dropZone = 'undefined';	// erase the "dropZone" attribute
-
-		/** We add the "onmousedown" event */
-		util.addEvent(document, "mousedown", this.REF_EVENT_onmousedown);
-
-	}else if(button == 1 && target == this.btnEdit){
-		this.setEditable(true);
-	}else if(button == 1 && target == this.btnClose){
-		this.remove();
 	}
 }
 
 /**
- * Over the other lists
+ * Flies over the other cards or lists. 
  * @memberof Card.prototype
  */
 Card.prototype.EVENT_onmouseover = function(event){
@@ -1970,27 +2083,28 @@ Card.prototype.EVENT_onmouseover = function(event){
 	if(this.dragged && target.className == "card-mask"){
 		var parentNode = target.hiddenCard.parentNode;
 
-		List.createMask(true); // We create the empty lists's mask
+		/** creates the empty lists's mask */
+		List.createMask(true); 
 
-		// On insert la carte draggée avant la carte survolée
+		/** inserts the dragged card before the overflew card */
 		if(target.getAttribute("data-position") == "top"){
-			parentNode.insertBefore(this.dropZone, target.hiddenCard);
+			parentNode.insertBefore(this.dropArea, target.hiddenCard);
 		}
 
-		// On insert la carte draggée après la carte survolée
+		/** inserts the dragged card after the overflew card */
 		if(target.getAttribute("data-position") == "bottom"){
-			parentNode.insertBefore(this.dropZone, target.hiddenCard.nextSibling);
+			parentNode.insertBefore(this.dropArea, target.hiddenCard.nextSibling);
 		}
 
 		List.resizeMask();
 
-		// We set the style of the mask
+		/** sets the style of the mask */
 		Card.replaceMask();
 	}
 
-	// We over an empty list
+	/** overs an empty list */
 	if(this.dragged && target.className == "list-mask"){
-		target.hiddenList.cardZone.appendChild(this.dropZone);
+		target.hiddenList.cardArea.appendChild(this.dropArea);
 		List.resizeMask();
 		Card.replaceMask();
 	}
@@ -2009,7 +2123,7 @@ Card.prototype.EVENT_onkeydown = function(event){
 	var target = event.target || event.srcElement;
 	var key;
 
-	if(BROWSER == "firefox"){
+	if(app.BROWSER == "firefox"){
 		key = event.key;
 		if(key == "Backspace" || key == "Del"){
 			key = '';
@@ -2020,15 +2134,17 @@ Card.prototype.EVENT_onkeydown = function(event){
 
 	if(event.keyCode != 16){ // "shift"
 		var content = this.cardText.innerHTML;
-		if(BROWSER == "firefox"){
+		if(app.BROWSER == "firefox"){
 			if(content.substring(content.length - 4) == "<br>"){
-				this.textHtml = content.substring(0, content.length - 4) + key; // We remove the "<br>" automatically created at the end
+				/** removes the "<br>" automatically created at the end */
+				this.textHtml = content.substring(0, content.length - 4) + key; 
 			}else{
 				this.textHtml = content + key;
 			}
-		}else if(BROWSER == "chrome" || BROWSER == "opera"){
+		}else if(app.BROWSER == "chrome" || app.BROWSER == "opera"){
 			if(content.substring(content.length - 6) == "</div>"){
-				this.textHtml = content.substring(0, content.length - 6) + key + "</div>"; // We put the last character in the last div created
+				/** puts the last character in the last div created */
+				this.textHtml = content.substring(0, content.length - 6) + key + "</div>"; 
 			}else{
 				this.textHtml = content + key;
 			}
@@ -2065,7 +2181,9 @@ Card.prototype.showEditBar = function(frameRate, firstIteration, secondIteration
 	}else if(!this.editBarAnimated && !this.editBarVisible){
 		this.editBarAnimated = true;
 		this.editBarVisible = true;
-		this.anim = setTimeout(function(){ref(frameRate, false, true)}, 600) // Wait before launch the animation
+		
+		/** waits before launch the animation */
+		this.anim = setTimeout(function(){ref(frameRate, false, true)}, 600) 
 		anim = false;
 	}
 
@@ -2076,13 +2194,13 @@ Card.prototype.showEditBar = function(frameRate, firstIteration, secondIteration
 
 		var top = 0;
 
-		if(secondIteration && (BROWSER == "chrome" || BROWSER == "opera")){
+		if(secondIteration && (app.BROWSER == "chrome" || app.BROWSER == "opera")){
 			top = parseFloat(this.offsetHeight); // Useful for Chrome and Opera
 		}else{
 			top = parseFloat(util.getStyle(this.editBar, "top")); // in pixels
 		}
 
-		var heightEditBar = parseFloat(util.getStyle(this.editBar, "height")); // We find it in pixels
+		var heightEditBar = parseFloat(util.getStyle(this.editBar, "height")); // finds it in pixels
 		var heightCard = parseFloat(this.offsetHeight);
 		var finalTop = heightCard - heightEditBar;
 
@@ -2139,7 +2257,9 @@ Card.prototype.hideEditBar = function(frameRate, firstIteration){
 	}
 }
 
-// STATIC ATTRIBUTES AND METHODES
+/*****************************************\
+		STATICS ATTRIBUTES AND METHODS
+\*****************************************/
 
 /**
  * @memberof Card
@@ -2147,7 +2267,7 @@ Card.prototype.hideEditBar = function(frameRate, firstIteration){
 Card.createMask = function(){
 	var card = document.getElementsByClassName("card");
 	for(var i = 0; i<card.length; i++){
-		// The top mask
+		/** the top mask */
 		var topMask = document.createElement("div");
 		topMask.style.left = card[i].offsetLeft + "px";
 		topMask.style.top = card[i].offsetTop + "px";
@@ -2165,7 +2285,7 @@ Card.createMask = function(){
 		topMask.style.zIndex = 100;
 		document.getElementsByClassName("body")[0].appendChild(topMask);
 
-		// The bottom mask
+		/** the bottom mask */
 		var botMask = document.createElement("div");
 		botMask.style.left = card[i].offsetLeft + "px";
 		botMask.style.top = card[i].offsetTop + (card[i].offsetHeight/2) + "px";
@@ -2228,17 +2348,30 @@ Card.removeMask = function(){
 }
 
 /**
+ * An array containing a reference to all cards
  * @memberof Card
  */
-Card.cardList = new Array; // An array containing a reference to all cards
-;
-// Allows to show all masks
+Card.cardList = new Array;
+;/**
+ * @file This main file of the application. It's the script which create 
+ * all the application.
+ */
+
+/**
+ * Allows to show all masks.
+ * Useful for debug
+ * @function showMask
+ */
 function showMask(){
 	List.showMask = true;
 	Card.showMask = true;
 }
 
-// Allows to hide all masks
+/**
+ * Allows to hide all masks.
+ * Useful for debug
+ * @function hideMask
+ */
 function hideMask(){
 	List.showMask = false;
 	Card.showMask = false;
@@ -2246,24 +2379,29 @@ function hideMask(){
 
 /** Create the default lists */
 (function(){
-	new List(TEXT["To do"]).addCard(false);
-	new List(TEXT["In progress"]).addCard(false);
-	new List(TEXT["Done"]).addCard(false);
+	new List(app.TEXT["To do"]).addCard(false);
+	new List(app.TEXT["In progress"]).addCard(false);
+	new List(app.TEXT["Done"]).addCard(false);
 })()
 
-util.addEvent(BTN_ADDLIST, "click", function(){new List;});
+util.addEvent(app.BTN_ADDLIST, "click", function(){new List;});
 
-//Le menu de la langue
-LANG_MENU = document.getElementsByClassName('lang-menu')[0];
-LANG_MENU_HEAD = document.getElementsByClassName('lang-menu-head')[0];
-BTN_LANG_MENU = document.getElementsByClassName('lang-menu-btn')[0];
+/** gets the lang menu */
+app.LANG_MENU = document.getElementsByClassName('lang-menu')[0];
+app.LANG_MENU_HEAD = document.getElementsByClassName('lang-menu-head')[0];
+app.BTN_LANG_MENU = document.getElementsByClassName('lang-menu-btn')[0];
 
-// We display the current language
-LANG_MENU_HEAD.innerHTML = TEXT.lang.replace(/^\w/, function($0) { return $0.toUpperCase(); }); // The first letter in uppercase
+/** displays the current language */
+app.LANG_MENU_HEAD.innerHTML = app.TEXT.__lang__.replace(/^\w/, function($0) { return $0.toUpperCase(); }); // puts the first letter in upper-case
 
 util.addEvent(document, "mousedown", menuLangDown);
 util.addEvent(document, "mouseup", menuLangUp);
 
+/**
+ * Handles the lang menu.
+ * @function menuLangDown
+ * @event
+ */
 function menuLangDown(event){
 	var target = event.target || event.srcElement;
 	
@@ -2273,11 +2411,16 @@ function menuLangDown(event){
 		var button = event.which;
 	}
 	
-	if(button == 1 && util.hasParent(target, LANG_MENU) && target.localName == "li"){
+	if(button == 1 && util.hasParent(target, app.LANG_MENU) && target.localName == "li"){
 		target.className = "onclick";
 	}	
 }
 
+/**
+ * Handles the lang menu.
+ * @function menuLangUp
+ * @event
+ */
 function menuLangUp(event){
 	var target = event.target || event.srcElement;
 	
@@ -2287,22 +2430,22 @@ function menuLangUp(event){
 		var button = event.which;
 	}	
 	
-	if(button == 1 && (target == BTN_LANG_MENU || util.hasParent(target, BTN_LANG_MENU))){	
-		if(util.getStyle(LANG_MENU, "display") == "none"){
-			LANG_MENU.style.display = "block";
+	if(button == 1 && (target == app.BTN_LANG_MENU || util.hasParent(target, app.BTN_LANG_MENU))){	
+		if(util.getStyle(app.LANG_MENU, "display") == "none"){
+			app.LANG_MENU.style.display = "block";
 		}else{
-			LANG_MENU.style.display = "none";
+			app.LANG_MENU.style.display = "none";
 		}
-	}else if(!util.hasParent(target, LANG_MENU)){
-		if(util.getStyle(LANG_MENU, "display") == "block"){
-			LANG_MENU.style.display = "none";
+	}else if(!util.hasParent(target, app.LANG_MENU)){
+		if(util.getStyle(app.LANG_MENU, "display") == "block"){
+			app.LANG_MENU.style.display = "none";
 		}
 	}
 	
-	// Change the lang of the interface.
-	if(button == 1 && util.hasParent(target, LANG_MENU) && target.localName == "li"){
+	/** change the interface language. */
+	if(button == 1 && util.hasParent(target, app.LANG_MENU) && target.localName == "li"){
 		target.className = "";
 		changeLang(target.innerHTML.toLowerCase());
-		LANG_MENU_HEAD.innerHTML = target.innerHTML;
+		app.LANG_MENU_HEAD.innerHTML = target.innerHTML;
 	}
 }

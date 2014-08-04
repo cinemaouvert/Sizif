@@ -11,7 +11,9 @@
 (function(){
 	ContextMenu = {};
 	ContextMenu.visible = false;
-	ContextMenu.target; // The html element targeted by the context menu.
+	
+	/** the html element targeted by the context menu. */
+	ContextMenu.target; 
 	var setting = [];
 
 	util.addEvent(document, "contextmenu", oncontextmenu);
@@ -24,7 +26,7 @@
 		if(target["className"] == "list" || util.hasParent(target, "className", "list")){
 			ContextMenu.target = target;
 
-			// On empeche le comportement par d�faut
+			/** prevent the default behaviour */
 			event.returnValue = false;
 			if(event.preventDefault){
 				event.preventDefault();
@@ -49,7 +51,7 @@
 			return;
 		}
 
-		// We prevent the context menu's buttons to be selected
+		/** prevents the context menu's buttons to be selected */
 		if(target.className == "ContextMenu-btn"){
 			event.returnValue = false;
 			if(event.preventDefault){
@@ -103,7 +105,7 @@
 			var uCanCreate = true;
 
 			if(util.hasParent(ContextMenu.target, setting[i].target)){
-				// Check if the parent isn't defined too, manage conflicts
+				/** check if the parent isn't defined too, manage conflicts */
 				for(var k = 0; k < setting.length; k++){
 					if(setting[k].target == ContextMenu.target){
 						uCanCreate = false;
@@ -151,7 +153,7 @@
    * @function ContextMenu.add
    * @param {object} target - the target of the context menu
    * @param {object} content - An object with the label of an action and a reference to the function which applies the action.
-   * @param {string|object} content.label - The action name, it can be a function which recovers the value of a variable, it just must return a string.
+   * @param {string|object} content.label - The action name, it can be a function which recovers the value of a variable, in this case it must return a string.
    * @param {object} content.action - A reference to a function
    * @todo Manage the case that there's non content send by the user.
    */

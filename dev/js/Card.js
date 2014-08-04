@@ -11,7 +11,7 @@ function Card(parentList, text){
 		throw "The card must have a parent list to be create.";
 	}
 
-	// we define as draggable all the other cards
+	/** defines as draggable all the other cards */
 	if(Card.cardList.length > 0){
 		for(var element in Card.cardList){
 			if(Card.cardList[element].editable){
@@ -26,28 +26,28 @@ function Card(parentList, text){
 	this.text = "";
 	this.textHtml = "";
 
-	//We create the card in the DOM
+	/** creates the card in the DOM */
 	var card = document.createElement("div");
 	card.className = "card";
 
-	//The text
+	/** the text */
 	this.cardText = document.createElement("div");
 	this.cardText.className = "card-text";
 	this.cardText.setAttribute("data-translatable", true);
 	card.appendChild(this.cardText);
 
-	// The edit bar
+	/** the edit bar */
 	this.editBar = document.createElement("div");
 	this.editBar.style.top = "100%";
 	this.editBar.className = "card-editBar";
 	card.appendChild(this.editBar);
 
-	// Close Button
+	/** close Button */
 	this.btnClose = document.createElement("div");
 	this.btnClose.className = "card-btnClose";
 	this.editBar.appendChild(this.btnClose);
 
-	// Edit Button
+	/** edit Button */
 	this.btnEdit = document.createElement("div");
 	this.btnEdit.className = "card-btnEdit";
 	this.editBar.appendChild(this.btnEdit);
@@ -55,51 +55,50 @@ function Card(parentList, text){
 	if(typeof(text) != "undefined"){
 		this.setText(text);
 	}else{
-		this.setText(TEXT["New card"]);
+		this.setText(app.TEXT["New card"]);
 	}
 
-	this.decalX = 0;
-	this.decalY = 0;
-	this.dropZone;
+	this.offsetX = 0;
+	this.offsetY = 0;
+	this.dropArea;
 	this.dragged = false;
 	this.draggable = false;
 	this.editable = false;
 
-	// We hide the edit bar
+	/** hides the edit bar */
 	this.anim;
 	this.editBarVisible = false;
 	this.editBarAnimated = false;
 	this.hideEditBar();
 
-	// The card inherit from the current object
+	/** the card inherit from the current object */
 	util.inherit(card, this);
 
-	// References on the functions wich allow to handle animations.
+	/** references on functions which handle animations. */
 	card.REF_EVENT_onmousedown = card.EVENT_onmousedown.bind(card);
 	card.REF_EVENT_onmousemove = card.EVENT_onmousemove.bind(card);
 	card.REF_EVENT_onmouseup = card.EVENT_onmouseup.bind(card);
 	card.REF_EVENT_onmouseover = card.EVENT_onmouseover.bind(card);
 	card.REF_EVENT_onkeydown = card.EVENT_onkeydown.bind(card);
 
-	// Events
+	/** events */
 	util.addEvent(document, "mousedown", card.REF_EVENT_onmousedown);
 	util.addEvent(document, "mouseover", card.REF_EVENT_onmouseover);
 	util.addEvent(document, "mouseup", card.REF_EVENT_onmouseup);
 	util.addEvent(document, "mousemove", card.REF_EVENT_onmousemove);
 
-	// We set the current card as editable
+	/** set the current card as editable */
 	card.setEditable(true);
 	
-	// Add context menu
-	
+	/** adds the context menu */
 	ContextMenu.add(card, 
-		{label: function(){ return TEXT["Add a card"]}, action: function(){card.parentList.addCard()}},
-		{label: function(){ return TEXT["Undo"]}, action: function(){}}, 
-		{label: function(){ return TEXT["Redo"]}, action: function(){}},
-		{label: function(){ return TEXT["Remove the list"]}, action: function(){card.parentList.remove()}}
+		{label: function(){ return app.TEXT["Add a card"]}, action: function(){card.parentList.addCard()}},
+		{label: function(){ return app.TEXT["Undo"]}, action: function(){}}, 
+		{label: function(){ return app.TEXT["Redo"]}, action: function(){}},
+		{label: function(){ return app.TEXT["Remove the list"]}, action: function(){card.parentList.remove()}}
 	)
 
-	// We return the created card
+	/** return the created card */
 	return card;
 }
 
@@ -128,12 +127,12 @@ Card.prototype.setEditable = function(bool){
 		this.editable = true;
 		this.setDraggable(false);
 		this.hideEditBar(12);
-
+		
 		this.cardText.contentEditable = true;
 		this.cardText.style.cursor = "text";
 		this.cardText.focus();
 
-		// Allow to put the Caret at the end of the text
+		/** allows to put the Caret at the end of the text */
 		if (document.getSelection) {    // all browsers, except IE before version 9
 			var sel = document.getSelection ();
 			// sel is a string in Firefox and Opera,
@@ -144,10 +143,10 @@ Card.prototype.setEditable = function(bool){
 			}
 		}
 		//sel.collapse(this.cardText.firstChild, this.cardText.textContent.length);
-
-		// We add the "onkeydown" event
+		
+		/** adds the "onkeydown" event */
 		util.addEvent(document, "keydown", this.REF_EVENT_onkeydown);
-	}else if(this.editable){
+	}else if(!bool && this.editable){
 		var isEmpty = /^\s*$/gi;
 		if(isEmpty.test(this.getText())){
 			this.cardText.blur();
@@ -155,12 +154,12 @@ Card.prototype.setEditable = function(bool){
 		}else{
 			this.editable = false;
 			this.setDraggable(true);
+			this.cardText.blur();
 			this.cardText.contentEditable = false;
 			this.cardText.style.cursor = "default";
-			this.cardText.blur();
 			this.cardText.innerHTML = this.textHtml;
 
-			// We remove the "onkeydown" event
+			/** removes the "onkeydown" event */
 			util.removeEvent(document, "keydown", this.REF_EVENT_onkeydown);
 		}
 	}
@@ -170,7 +169,7 @@ Card.prototype.setEditable = function(bool){
  * @memberof Card.prototype
  */
 Card.prototype.remove = function(){
-	// We remove the card from the static list
+	/** removes the card from the static list */
 	if(Card.cardList.length > 0){
 		for(var element in Card.cardList){
 			if(Card.cardList[element] == this){
@@ -179,13 +178,13 @@ Card.prototype.remove = function(){
 		}
 	}
 
-	// We remove the context menu
+	/** removes the context menu */
 	ContextMenu.remove(this)
 	
-	// We remove the "onmousedown" event
+	/** removes the "onmousedown" event */
 	util.removeEvent(document, "mousedown", this.REF_EVENT_onmousedown);
 
-	// We remove the current card
+	/** removes the current card */
 	this.parentNode.removeChild(this);
 }
 
@@ -203,7 +202,7 @@ Card.prototype.setText = function(newText){
  * @memberof Card.prototype
  */
 Card.prototype.getText = function(){
-	// Delete the style tags
+	/** Delete the style tags */
 	var childs = this.cardText.childNodes;
 
 	for(var i = 0; i < childs.length; i++){
@@ -234,9 +233,9 @@ Card.prototype.EVENT_onmousedown = function(event){
 		if(this.editable && target != this.cardText){
 			this.setDraggable(true);
 		}
-
+		
 		if(this.draggable && (target == this || util.hasParent(target, this))){
-			//On empèche le comportement par défaut
+			/** prevents the default behaviour */
 			event.returnValue = false;
 			if(event.preventDefault){
 				event.preventDefault();
@@ -246,11 +245,11 @@ Card.prototype.EVENT_onmousedown = function(event){
 			this.style.zIndex = 99;
 			this.hideEditBar(2);
 
-			//On calcul la position de la souris dans l'objet afin de la fixer à l'endroit où elle le saisie en enregistrant le calcul dans les variable "decal".
+			/** calculates the mouse position in the object in order to set the object where the mouse catch it, recording the result in the "offset" variables. */ 
 			var mouseX = event.clientX + document.documentElement.scrollLeft + document.body.scrollLeft;
 			var mouseY = event.clientY + document.documentElement.scrollTop + document.body.scrollTop;
 
-			//On calcul les eléments extérieurs à l'objet
+			/** calculates the offsets offsets of the object */
 			var elementX = 0;
 			var elementY = 0;
 			var element = this;
@@ -260,17 +259,17 @@ Card.prototype.EVENT_onmousedown = function(event){
 				element = element.offsetParent;
 			}while(element && util.getStyle(element, 'position') != 'absolute'  && util.getStyle(element, 'position') != 'fixed');
 
-			this.decalX += mouseX - elementX;
-			this.decalY += mouseY - elementY;
+			this.offsetX += mouseX - elementX;
+			this.offsetY += mouseY - elementY;
 
-			// We create the drop zone
-			this.dropZone = document.createElement("div");
-			this.dropZone.style.height = util.getStyle(this, "height");
-			this.dropZone.style.width = util.getStyle(this, "width");
-			this.dropZone.className = "card-dropZone";
-			this.parentNode.insertBefore(this.dropZone, this);
+			/** creates the drop area */
+			this.dropArea = document.createElement("div");
+			this.dropArea.style.height = util.getStyle(this, "height");
+			this.dropArea.style.width = util.getStyle(this, "width");
+			this.dropArea.className = "card-dropArea";
+			this.parentNode.insertBefore(this.dropArea, this);
 
-			// On transforme l'objet parent en position absolute
+			/** turn the parent object in absolute position */
 			this.style.width = util.getStyle(this, "width");
 			var marginHeight = (this.offsetHeight - parseFloat(util.getStyle(this, "height")))/2
 			this.style.left = elementX + 'px';
@@ -279,15 +278,20 @@ Card.prototype.EVENT_onmousedown = function(event){
 			this.style.width = util.getStyle(this, "width");
 			this.className = "card-caught";
 
-			this.parentList.removeCard(this); // We remove the card from the parentList
+			/** removes the card from the parentList */
+			this.parentList.removeCard(this); 
 
-			Card.createMask(); // We create the Cards's masks
-			List.createMask(true); // We create the masks for the empty lists
+			/** creates the masks Cards */
+			Card.createMask(); 
+			
+			/** creates the masks for the empty lists */
+			List.createMask(true); 
 			if(this.parentList.cardNumber() == 1){
-				List.createMask(this.parentList); // We create a mask for the parentList if the current card is alone in it
+				/** creates a mask for the parentList if the current card is alone in it. */
+				List.createMask(this.parentList); 
 			}
 
-			// We remove the "onmousedown" event
+			/** removes the "onmousedown" event */
 			util.removeEvent(document, "mousedown", this.REF_EVENT_onmousedown);
 		}
 	}
@@ -300,13 +304,13 @@ Card.prototype.EVENT_onmousedown = function(event){
 Card.prototype.EVENT_onmousemove = function(event){
 	var target = event.target || event.srcElement;
 	if(this.dragged){
-		// On récupère la position de la souris
+		/** gets the mouse coordinates */
 		var x = event.clientX + (document.documentElement.scrollLeft + document.body.scrollLeft);
 		var y = event.clientY + (document.documentElement.scrollTop + document.body.scrollTop);
 
-		// On applique les différents décalages
-		x -= this.decalX;
-		y -= this.decalY;
+		/** applies the different offsets */
+		x -= this.offsetX;
+		y -= this.offsetY;
 
 		this.className = "card-dragged";
 		this.style.left = x + 'px';
@@ -327,46 +331,47 @@ Card.prototype.EVENT_onmouseup = function(event){
 		var button = event.which;
 	}
 
-	if(button == 1 && this.dragged){
-		/** prevent the default behavior */
-		event.returnValue = false;
-		if(event.preventDefault){
-			event.preventDefault();
+	if(button == 1){
+		if(this.dragged){
+			/** prevent the default behaviour */
+			event.returnValue = false;
+			if(event.preventDefault){
+				event.preventDefault();
+			}
+
+			/** puts back the attributes to 0 */
+			this.dragged = false;
+			this.offsetX = 0;
+			this.offsetY = 0;
+
+			/** remove the masks */
+			Card.removeMask()
+			List.removeMask()
+
+			/** puts back in place */
+			this.removeAttribute("style");
+			this.className = "card";
+			this.dropArea.parentNode.replaceChild(this, this.dropArea);
+
+			/** handle the parentList property */
+			this.parentList.removeCard(this); // removes the card from the parentList
+			this.parentList = this.parentNode.parentNode; // changes the "parentList" attribute
+			this.parentList.addCard(this); // adds the card to the new parent list
+
+			this.dropArea = 'undefined';	// erases the "dropArea" attribute
+
+			/** adds the "onmousedown" event */
+			util.addEvent(document, "mousedown", this.REF_EVENT_onmousedown);
+		}else if(target == this.btnEdit){
+			this.setEditable(true);
+		}else if(target == this.btnClose){
+			this.remove();
 		}
-
-		// On remet les attributs à 0
-		this.dragged = false;
-		this.decalX = 0;
-		this.decalY = 0;
-
-		/** remove the masks */
-		Card.removeMask()
-		List.removeMask()
-
-		//On remet tout en état
-		this.removeAttribute("style");
-		this.className = "card";
-		this.dropZone.parentNode.replaceChild(this, this.dropZone);
-
-		/** handle the parentList property */
-		this.parentList.removeCard(this); // remove the card from the parentList
-		this.parentList = this.parentNode.parentNode; // change the "parentList" attribute
-		this.parentList.addCard(this); // add the card to the new parent list
-
-		this.dropZone = 'undefined';	// erase the "dropZone" attribute
-
-		/** We add the "onmousedown" event */
-		util.addEvent(document, "mousedown", this.REF_EVENT_onmousedown);
-
-	}else if(button == 1 && target == this.btnEdit){
-		this.setEditable(true);
-	}else if(button == 1 && target == this.btnClose){
-		this.remove();
 	}
 }
 
 /**
- * Over the other lists
+ * Flies over the other cards or lists. 
  * @memberof Card.prototype
  */
 Card.prototype.EVENT_onmouseover = function(event){
@@ -375,27 +380,28 @@ Card.prototype.EVENT_onmouseover = function(event){
 	if(this.dragged && target.className == "card-mask"){
 		var parentNode = target.hiddenCard.parentNode;
 
-		List.createMask(true); // We create the empty lists's mask
+		/** creates the empty lists's mask */
+		List.createMask(true); 
 
-		// On insert la carte draggée avant la carte survolée
+		/** inserts the dragged card before the overflew card */
 		if(target.getAttribute("data-position") == "top"){
-			parentNode.insertBefore(this.dropZone, target.hiddenCard);
+			parentNode.insertBefore(this.dropArea, target.hiddenCard);
 		}
 
-		// On insert la carte draggée après la carte survolée
+		/** inserts the dragged card after the overflew card */
 		if(target.getAttribute("data-position") == "bottom"){
-			parentNode.insertBefore(this.dropZone, target.hiddenCard.nextSibling);
+			parentNode.insertBefore(this.dropArea, target.hiddenCard.nextSibling);
 		}
 
 		List.resizeMask();
 
-		// We set the style of the mask
+		/** sets the style of the mask */
 		Card.replaceMask();
 	}
 
-	// We over an empty list
+	/** overs an empty list */
 	if(this.dragged && target.className == "list-mask"){
-		target.hiddenList.cardZone.appendChild(this.dropZone);
+		target.hiddenList.cardArea.appendChild(this.dropArea);
 		List.resizeMask();
 		Card.replaceMask();
 	}
@@ -414,7 +420,7 @@ Card.prototype.EVENT_onkeydown = function(event){
 	var target = event.target || event.srcElement;
 	var key;
 
-	if(BROWSER == "firefox"){
+	if(app.BROWSER == "firefox"){
 		key = event.key;
 		if(key == "Backspace" || key == "Del"){
 			key = '';
@@ -425,15 +431,17 @@ Card.prototype.EVENT_onkeydown = function(event){
 
 	if(event.keyCode != 16){ // "shift"
 		var content = this.cardText.innerHTML;
-		if(BROWSER == "firefox"){
+		if(app.BROWSER == "firefox"){
 			if(content.substring(content.length - 4) == "<br>"){
-				this.textHtml = content.substring(0, content.length - 4) + key; // We remove the "<br>" automatically created at the end
+				/** removes the "<br>" automatically created at the end */
+				this.textHtml = content.substring(0, content.length - 4) + key; 
 			}else{
 				this.textHtml = content + key;
 			}
-		}else if(BROWSER == "chrome" || BROWSER == "opera"){
+		}else if(app.BROWSER == "chrome" || app.BROWSER == "opera"){
 			if(content.substring(content.length - 6) == "</div>"){
-				this.textHtml = content.substring(0, content.length - 6) + key + "</div>"; // We put the last character in the last div created
+				/** puts the last character in the last div created */
+				this.textHtml = content.substring(0, content.length - 6) + key + "</div>"; 
 			}else{
 				this.textHtml = content + key;
 			}
@@ -470,7 +478,9 @@ Card.prototype.showEditBar = function(frameRate, firstIteration, secondIteration
 	}else if(!this.editBarAnimated && !this.editBarVisible){
 		this.editBarAnimated = true;
 		this.editBarVisible = true;
-		this.anim = setTimeout(function(){ref(frameRate, false, true)}, 600) // Wait before launch the animation
+		
+		/** waits before launch the animation */
+		this.anim = setTimeout(function(){ref(frameRate, false, true)}, 600) 
 		anim = false;
 	}
 
@@ -481,13 +491,13 @@ Card.prototype.showEditBar = function(frameRate, firstIteration, secondIteration
 
 		var top = 0;
 
-		if(secondIteration && (BROWSER == "chrome" || BROWSER == "opera")){
+		if(secondIteration && (app.BROWSER == "chrome" || app.BROWSER == "opera")){
 			top = parseFloat(this.offsetHeight); // Useful for Chrome and Opera
 		}else{
 			top = parseFloat(util.getStyle(this.editBar, "top")); // in pixels
 		}
 
-		var heightEditBar = parseFloat(util.getStyle(this.editBar, "height")); // We find it in pixels
+		var heightEditBar = parseFloat(util.getStyle(this.editBar, "height")); // finds it in pixels
 		var heightCard = parseFloat(this.offsetHeight);
 		var finalTop = heightCard - heightEditBar;
 
@@ -544,7 +554,9 @@ Card.prototype.hideEditBar = function(frameRate, firstIteration){
 	}
 }
 
-// STATIC ATTRIBUTES AND METHODES
+/*****************************************\
+		STATICS ATTRIBUTES AND METHODS
+\*****************************************/
 
 /**
  * @memberof Card
@@ -552,7 +564,7 @@ Card.prototype.hideEditBar = function(frameRate, firstIteration){
 Card.createMask = function(){
 	var card = document.getElementsByClassName("card");
 	for(var i = 0; i<card.length; i++){
-		// The top mask
+		/** the top mask */
 		var topMask = document.createElement("div");
 		topMask.style.left = card[i].offsetLeft + "px";
 		topMask.style.top = card[i].offsetTop + "px";
@@ -570,7 +582,7 @@ Card.createMask = function(){
 		topMask.style.zIndex = 100;
 		document.getElementsByClassName("body")[0].appendChild(topMask);
 
-		// The bottom mask
+		/** the bottom mask */
 		var botMask = document.createElement("div");
 		botMask.style.left = card[i].offsetLeft + "px";
 		botMask.style.top = card[i].offsetTop + (card[i].offsetHeight/2) + "px";
@@ -633,6 +645,7 @@ Card.removeMask = function(){
 }
 
 /**
+ * An array containing a reference to all cards
  * @memberof Card
  */
-Card.cardList = new Array; // An array containing a reference to all cards
+Card.cardList = new Array;

@@ -1,52 +1,60 @@
-//Variables globales utilisées par tout le programme
-var SETTING,
-	TEXT, //L'objet contenant les string de l'interface
-	BTN_ADDLIST = document.getElementsByClassName("btn_addList")[0];
-	BROWSER = "";
+/**
+ * @file This file handles the settings and
+ * defines the variables used by the application.
+ */
+
+/** creates the scope */
+app = {}; 
+ 
+app.SETTING;  
+app.TEXT; // the object containing the text of the interface.
+app.BTN_ADDLIST = document.getElementsByClassName("btn_addList")[0];
+app.BROWSER = "";
 
 (function(){
-	//On charge les paramètres
+	/** loads settings */
 	util.getJSON("setting.json", function(response){
-		SETTING = JSON.parse(response);
+		app.SETTING = JSON.parse(response);
 		if(typeof(console.clear) != "undefined"){
 			console.clear();
 		}
 	})
 	
-	// On cherche le navigateur
+	/** finds which is the client browser */
 	var userAgent = navigator.userAgent;
 	var isChrome = /chrome/gi;
 		
 	if(isChrome.test(userAgent)){
-		BROWSER = "chrome";
+		app.BROWSER = "chrome";
 	}else{
 		var isOpera = /(opera|\sopr)/gi; 
 		
 		if(isOpera.test(userAgent)){
-			BROWSER = "opera";
+			app.BROWSER = "opera";
 		}else{
-			var isMSIE = /(msie|trident)/gi; // On vérifie s'il y a la signature MSIE d'internet explorer ou "Trident", son moteur de rendu.
+			/** check if there is the MSIE signature from internet explorer or "Trident", is layout engine */
+			var isMSIE = /(msie|trident)/gi; 
 		
 			if(isMSIE.test(userAgent)){
-				BROWSER = "msie";
+				app.BROWSER = "msie";
 			}else{
-				var isFirefox = /firefox/gi; // On vérifie s'il y a la signature MSIE d'internet explorer ou "Trident", son moteur de rendu.
+				var isFirefox = /firefox/gi; 
 		
 				if(isFirefox.test(userAgent)){
-					BROWSER = "firefox";
+					app.BROWSER = "firefox";
 				}else{
 					var isSafari = /safari/gi;
 			
 					if(isSafari.test(userAgent)){
-						BROWSER = "safari";
+						app.BROWSER = "safari";
 					}
 				}
 			}
 		}
 	}
 	
-	//For now there are troubles with MSIE
-	if(BROWSER == "msie"){
+	/** for now there are troubles with MSIE */
+	if(app.BROWSER == "msie"){
 		var msgEN = "[en]\nFor now the application isn't completely \ncompatible with Internet Explorer, use \nrather Firefox, Google Chrome, Safari or Opera."
 		var msgFR = "[fr]\nPour l'instant l'application n'est pas completement \ncompatible avec Internet Explorer, utilisez \nplutot Firefox, Google Chrome, Safari ou Opera."
 		var msg = msgEN + "\n\n" + msgFR;
@@ -54,23 +62,16 @@ var SETTING,
 		console.warn(msg);	
 	}
 	
-	//Si la langue est réglée sur "Auto", on la défini selon la langue du navigateur
-	if(SETTING.lang == "auto" || SETTING.lang == "Auto" || SETTING.lang == "AUTO"){
+	/** if the "lang" setting is set on "auto", it defines it depending on the browser language. */
+	var isAuto = /auto/gi;
+	if(isAuto.test(app.SETTING.lang)){
 		var isLong = /-/g;
 		if(isLong.test(window.navigator.language)){
 			var posEnd = window.navigator.language.indexOf("-");
 			var language = window.navigator.language.substring(0, posEnd);
-			SETTING.lang = language;
+			app.SETTING.lang = language;
 		}else{
-			SETTING.lang = window.navigator.language;
+			app.SETTING.lang = window.navigator.language;
 		}
 	}
-	
-	//On gère le hors-ligne
-	if(SETTING.offline){
-		var cool = document.getElementsByTagName("html")[0];
-		cool.setAttribute("manifest", "offline.appcache");
-		window.applicationCache.update();
-	}
-
 })()
