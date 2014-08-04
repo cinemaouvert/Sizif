@@ -1147,7 +1147,7 @@ function List(title, textBtnFooter){
 	this.btnFooter.innerHTML = textBtnFooter;
 	list.appendChild(this.btnFooter);
 
-	document.getElementsByClassName("Body")[0].insertBefore(list, BTN_ADDLIST);
+	document.getElementsByClassName("body")[0].insertBefore(list, BTN_ADDLIST);
 
 	// We fix the height of the list's title
 	this.labelHead.style.height = this.labelHead.offsetHeight + "px";
@@ -1392,7 +1392,7 @@ List.prototype.EVENT_onmouseup = function(event){
 		// On remet tout en �tat
 		this.removeAttribute("style");
 		this.className = "list";
-		document.getElementsByClassName("Body")[0].replaceChild(this, this.dropZone);
+		document.getElementsByClassName("body")[0].replaceChild(this, this.dropZone);
 		this.dropZone = 'undefined';
 	}
 
@@ -1555,7 +1555,7 @@ List.createMask = function(emptyListOrList){
 			}
 
 			mask.style.zIndex = 100;
-			document.getElementsByClassName("Body")[0].appendChild(mask);
+			document.getElementsByClassName("body")[0].appendChild(mask);
 		}
 	}
 }
@@ -2163,7 +2163,7 @@ Card.createMask = function(){
 		}
 
 		topMask.style.zIndex = 100;
-		document.getElementsByClassName("Body")[0].appendChild(topMask);
+		document.getElementsByClassName("body")[0].appendChild(topMask);
 
 		// The bottom mask
 		var botMask = document.createElement("div");
@@ -2181,7 +2181,7 @@ Card.createMask = function(){
 		}
 
 		botMask.style.zIndex = 100;
-		document.getElementsByClassName("Body")[0].appendChild(botMask);
+		document.getElementsByClassName("body")[0].appendChild(botMask);
 	}
 }
 

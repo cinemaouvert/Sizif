@@ -568,7 +568,7 @@ Card.createMask = function(){
 		}
 
 		topMask.style.zIndex = 100;
-		document.getElementsByClassName("Body")[0].appendChild(topMask);
+		document.getElementsByClassName("body")[0].appendChild(topMask);
 
 		// The bottom mask
 		var botMask = document.createElement("div");
@@ -586,7 +586,7 @@ Card.createMask = function(){
 		}
 
 		botMask.style.zIndex = 100;
-		document.getElementsByClassName("Body")[0].appendChild(botMask);
+		document.getElementsByClassName("body")[0].appendChild(botMask);
 	}
 }
 
