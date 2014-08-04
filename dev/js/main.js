@@ -1,5 +1,5 @@
 /**
- * @file This main file of the application. It's the script which create 
+ * @file This is the main file of the application. It creates 
  * all the application.
  */
 
@@ -32,9 +32,16 @@ function hideMask(){
 
 util.addEvent(app.BTN_ADDLIST, "click", function(){new List;});
 
-/** gets the lang menu */
+/** 
+ * gets the lang menu
+ * @memberof app
+ */
 app.LANG_MENU = document.getElementsByClassName('lang-menu')[0];
+
+/** @memberof app */
 app.LANG_MENU_HEAD = document.getElementsByClassName('lang-menu-head')[0];
+
+/** @memberof app */
 app.BTN_LANG_MENU = document.getElementsByClassName('lang-menu-btn')[0];
 
 /** displays the current language */

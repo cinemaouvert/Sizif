@@ -1,3 +1,5 @@
+/** @file This file contains the ListTitle class. */
+
 /**
  * Allows to create titles with advanced properties.
  * Used by List.

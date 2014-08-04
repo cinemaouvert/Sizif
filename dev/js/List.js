@@ -1,3 +1,5 @@
+/** @file This file contains the List class. */
+
 /**
  * Provides lists.
  * @constructor
@@ -8,10 +10,12 @@
 function List(title, textBtnFooter){
 	List.counter++;
 
+	/** @default */
 	if(typeof(title) == "undefined"){
 		title = app.TEXT["New list"];
 	}
 
+	/** @default */
 	if(typeof(textBtnFooter) == "undefined"){
 		textBtnFooter = app.TEXT["Add a card"] + "...";
 	}
@@ -24,7 +28,7 @@ function List(title, textBtnFooter){
 	listHeader.className = "list-header";
 
 	/** 
-	 * @member {object} List.listTitle 
+	 * @member {object} List#listTitle 
 	 */
 	this.listTitle = new ListTitle(title, "h2");
 	this.listTitle.style.display = "inline-block";
@@ -41,7 +45,8 @@ function List(title, textBtnFooter){
 
 	/** 
 	 * The list body which contains cards.
-	 * @member {object} List.cardArea 
+	 * @member {object} List#cardArea 
+	 * @instance
 	 */
 	this.cardArea = document.createElement("div");
 	this.cardArea.className = "list-cardArea";
@@ -49,7 +54,7 @@ function List(title, textBtnFooter){
 
 	/** 
 	 * The "add list" button in the list footer.
-	 * @member {object} List.btnFooter
+	 * @member {object} List#btnFooter
 	 */
 	this.btnFooter = document.createElement("a");
 	this.btnFooter.className = "list-footer";
@@ -68,43 +73,43 @@ function List(title, textBtnFooter){
 
 	/** 
 	 * The position number of the current list according to the others.
-	 * @member {object} List.position
+	 * @member {number} List#position
 	 */
 	this.position = List.counter;
 	
 	/** 
 	 * It allows to now if the list is dragged by the user.
-	 * @member {object} List.dragged
+	 * @member {boolean} List#dragged
 	 */
 	this.dragged = false;
 	
 	/** 
 	 * It stores the horizontal offset of the list.
-	 * @member {object} List.offsetX
+	 * @member {number} List#offsetX
 	 */
 	this.offsetX = 0;
 	
 	/** 
 	 * It stores the vertical offset of the list.
-	 * @member {object} List.offsetX
+	 * @member {number} List#offsetX
 	 */
 	this.offsetY = 0;
 	
 	/** 
-	 * It allows to now if the list is clicked by the user.
-	 * @member {object} List.clicked
+	 * It allows to know if the list is clicked by the user.
+	 * @member {boolean} List#clicked
 	 */
 	this.clicked = false;
 	
 	/** 
 	 * It stores the node which represents the drop area of the list.
-	 * @member {object} List.dropArea
+	 * @member {object} List#dropArea
 	 */
 	this.dropArea = 'undefined';
 
 	/** 
 	 * It is used to handle cards.
-	 * @member {object} List.cardList
+	 * @member {object} List#cardList
 	 */
 	this.cardList = new Array;
 
@@ -130,14 +135,14 @@ function List(title, textBtnFooter){
 }
 
 /**
- * @memberof List.prototype
+ * @memberof List#
  */
 List.prototype.setPosition = function(newPosition){
 	this.position = newPosition;
 }
 
 /**
- * @memberof List.prototype
+ * @memberof List#
  */
 List.prototype.addCard = function(cardOrBool, bool){
 	var alreadyInDom = false;
@@ -149,6 +154,7 @@ List.prototype.addCard = function(cardOrBool, bool){
 	}else if(typeof(bool) == "boolean"){
 		editable = bool;
 	}else{
+		/** @default */
 		editable = true;
 	}
 
@@ -176,7 +182,7 @@ List.prototype.addCard = function(cardOrBool, bool){
 }
 
 /**
- * @memberof List.prototype
+ * @memberof List#
  */
 List.prototype.removeCard = function(card){
 	/** remove the card from the array */
@@ -188,7 +194,7 @@ List.prototype.removeCard = function(card){
 }
 
 /**
- * @memberof List.prototype
+ * @memberof List#
  */
 List.prototype.remove = function(){
 	/** removes the HTMLElement */
@@ -202,7 +208,7 @@ List.prototype.remove = function(){
 }
 
 /**
- * @memberof List.prototype
+ * @memberof List#
  * @event
  */
 List.prototype.EVENT_onmousedown = function(event){
@@ -279,7 +285,7 @@ List.prototype.EVENT_onmousedown = function(event){
 }
 
 /**
- * @memberof List.prototype
+ * @memberof List#
  * @event
  */
 List.prototype.EVENT_onmousemove = function(event){
@@ -298,7 +304,7 @@ List.prototype.EVENT_onmousemove = function(event){
 }
 
 /**
- * @memberof List.prototype
+ * @memberof List#
  * @event
  */
 List.prototype.EVENT_onmouseup = function(event){
@@ -345,8 +351,9 @@ List.prototype.EVENT_onmouseup = function(event){
 }
 
 /**
- * Flies over the other lists
- * @memberof List.prototype
+ * Handles when the other lists are overflew.
+ * @memberof List#
+ * @event
  */
 List.prototype.EVENT_onmouseover = function(event){
 	var maskTarget = event.target || event.srcElement;
@@ -419,7 +426,7 @@ List.prototype.EVENT_onmouseover = function(event){
 }
 
 /**
- * @memberof List.prototype
+ * @memberof List#
  */
 List.prototype.cardNumber = function(){
 	var count = 0;
@@ -441,6 +448,7 @@ List.prototype.cardNumber = function(){
  * @memberof List
  */
 List.createMask = function(emptyListOrList){
+	/** @default */
 	var emptyList = false;
 
 	if(typeof(emptyListOrList) == "boolean"){
@@ -535,6 +543,7 @@ List.removeMask = function(){
 List.counter = 0;
 
 /**
+ * Allows to show the created masks during execution.
  * @memberof List
  */
 List.showMask = false;

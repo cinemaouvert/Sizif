@@ -1,3 +1,4 @@
+/** @file This file contains the Card class. */
 
 /**
  * Provides cards
@@ -103,7 +104,7 @@ function Card(parentList, text){
 }
 
 /**
- * @memberof Card.prototype
+ * @memberof Card#
  */
 Card.prototype.setDraggable = function(bool){
 	if(bool){
@@ -120,7 +121,7 @@ Card.prototype.setDraggable = function(bool){
 }
 
 /**
- * @memberof Card.prototype
+ * @memberof Card#
  */
 Card.prototype.setEditable = function(bool){
 	if(bool && !this.editable){
@@ -166,7 +167,7 @@ Card.prototype.setEditable = function(bool){
 }
 
 /**
- * @memberof Card.prototype
+ * @memberof Card#
  */
 Card.prototype.remove = function(){
 	/** removes the card from the static list */
@@ -189,7 +190,7 @@ Card.prototype.remove = function(){
 }
 
 /**
- * @memberof Card.prototype
+ * @memberof Card#
  */
 Card.prototype.setText = function(newText){
 	this.text = newText;
@@ -199,7 +200,7 @@ Card.prototype.setText = function(newText){
 }
 
 /**
- * @memberof Card.prototype
+ * @memberof Card#
  */
 Card.prototype.getText = function(){
 	/** Delete the style tags */
@@ -217,7 +218,7 @@ Card.prototype.getText = function(){
 }
 
 /**
- * @memberof Card.prototype
+ * @memberof Card#
  * @event
  */
 Card.prototype.EVENT_onmousedown = function(event){
@@ -298,7 +299,7 @@ Card.prototype.EVENT_onmousedown = function(event){
 }
 
 /**
- * @memberof Card.prototype
+ * @memberof Card#
  * @event
  */
 Card.prototype.EVENT_onmousemove = function(event){
@@ -319,7 +320,7 @@ Card.prototype.EVENT_onmousemove = function(event){
 }
 
 /**
- * @memberof Card.prototype
+ * @memberof Card#
  * @event
  */
 Card.prototype.EVENT_onmouseup = function(event){
@@ -372,7 +373,8 @@ Card.prototype.EVENT_onmouseup = function(event){
 
 /**
  * Flies over the other cards or lists. 
- * @memberof Card.prototype
+ * @memberof Card#
+ * @event
  */
 Card.prototype.EVENT_onmouseover = function(event){
 	var target = event.target || event.srcElement;
@@ -414,7 +416,8 @@ Card.prototype.EVENT_onmouseover = function(event){
 }
 
 /**
- * @memberof Card.prototype
+ * @memberof Card#
+ * @event
  */
 Card.prototype.EVENT_onkeydown = function(event){
 	var target = event.target || event.srcElement;
@@ -451,7 +454,7 @@ Card.prototype.EVENT_onkeydown = function(event){
 }
 
 /**
- * @memberof Card.prototype
+ * @memberof Card#
  */
 Card.prototype.showEditBar = function(frameRate, firstIteration, secondIteration){
 	var anim = true;
@@ -515,7 +518,10 @@ Card.prototype.showEditBar = function(frameRate, firstIteration, secondIteration
 }
 
 /**
- * @memberof Card.prototype
+ * Allows to animate the edit bar.
+ * @function
+ * @param {number} [frameRate] - The number of milliseconds between two state change.
+ * @memberof Card#
  */
 Card.prototype.hideEditBar = function(frameRate, firstIteration){
 	var anim = true;
@@ -533,6 +539,7 @@ Card.prototype.hideEditBar = function(frameRate, firstIteration){
 	}
 
 	if(anim){
+		/** @default */
 		if(typeof(frameRate) == "undefined"){
 			var frameRate = 10;
 		}
@@ -645,7 +652,7 @@ Card.removeMask = function(){
 }
 
 /**
- * An array containing a reference to all cards
+ * An array containing a reference to each card
  * @memberof Card
  */
 Card.cardList = new Array;

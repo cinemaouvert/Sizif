@@ -1,5 +1,6 @@
 /**
- * @file This file manages the context menu event.
+ * @file This file manages the context menu event. It allows
+ * to create a custom context menu.
  * In use the context menu can be hidden manually using the ContextMenu.hide method.
  * If the target to which you are assigned a context menu is destroyed, you must remove
  * its context menu using the ContextMenu.remove method. It takes the relevant target
@@ -10,16 +11,28 @@
 
 (function(){
 	ContextMenu = {};
+	
+	/**
+	 * Allows to test if the custom context menu is visible.
+	 * @member {boolean} ContextMenu.visible
+	 */
 	ContextMenu.visible = false;
 	
 	/** the html element targeted by the context menu. */
 	ContextMenu.target; 
 	var setting = [];
 
+	/** adds the events handler */
 	util.addEvent(document, "contextmenu", oncontextmenu);
 	util.addEvent(document, "mousedown", onmousedown);
 	util.addEvent(document, "mouseup", onmouseup);
 
+	/**
+	 * Manage the oncontextmenu event.
+	 * @function
+	 * @private
+	 * @event
+	 */
 	function oncontextmenu(event){
 		var target = event.target || event.srcElement;
 
@@ -41,6 +54,8 @@
 
 	/**
 	 * Manage the onmousedown event for the context menu
+	 * @function
+	 * @private
 	 * @event
 	 */
 	function onmousedown(event){
@@ -62,6 +77,8 @@
 
 	/**
 	 * Manage the onmouseup event for the context menu
+	 * @function
+	 * @private
 	 * @event
 	 */
 	function onmouseup(event){
@@ -81,7 +98,7 @@
 							
 							if(target.textContent == label){
 								/** 
-								 * Apply the defined action
+								 * applies the defined action
 								 * then remove the context menu.
 								 */
 								content[j].action();
@@ -96,7 +113,7 @@
 	}
 
     /**
-     * create the context menu
+     * Creates the context menu
      * @function create
 	 * @private
      */
@@ -155,6 +172,7 @@
    * @param {object} content - An object with the label of an action and a reference to the function which applies the action.
    * @param {string|object} content.label - The action name, it can be a function which recovers the value of a variable, in this case it must return a string.
    * @param {object} content.action - A reference to a function
+   * @memberof ContextMenu
    * @todo Manage the case that there's non content send by the user.
    */
    ContextMenu.add = function(){
@@ -177,6 +195,7 @@
 	 * Remove a context menu
 	 * @function ContextMenu.remove
 	 * @param {object} target - the target of the context menu
+	 * @memberof ContextMenu
 	 */
 	ContextMenu.remove = function(target){
 		if(typeof(target) == "undefined" || typeof(target) == "string"){
@@ -193,6 +212,7 @@
     /**
      * Remove the context menu if it's visible.
      * @function ContextMenu.hide
+	 * @memberof ContextMenu
      */
 	ContextMenu.hide = function(){
 		if(ContextMenu.visible){
@@ -205,13 +225,15 @@
     /**
      * Return the html element of the button which contains the given text
      * @function ContextMenu.btn
+	 * @param {string} str - The text of the button that the user wants to retrieve. 
      * @return {object} The html element containing the text send in parameter.
+	 * @memberof ContextMenu
      */
-    ContextMenu.btn = function(string){
+    ContextMenu.btn = function(str){
 		if(ContextMenu.visible){
 			var childs = ContextMenu.dom.childNodes;
 			for(var i = 0; i < childs.length; i++){
-				if(childs[i].textContent == string){
+				if(childs[i].textContent == str){
 					return childs[i];
 				}
 			}

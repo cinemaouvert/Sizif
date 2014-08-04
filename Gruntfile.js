@@ -14,8 +14,8 @@ module.exports = function(grunt) {
 	/** On met la liste des fichiers à concaténer dans une variable. */
 	var prefix = "dev/js/";
 	var jsSrc = [
-		prefix + 'Util.js',
-		prefix + 'Setting.js',
+		prefix + 'util.js',
+		prefix + 'app.js',
 		prefix + 'Translate.js',
 		prefix + 'ContextMenu.js',
 		prefix + 'ListTitle.js',

@@ -1,10 +1,12 @@
 /**
- * @file This file creates the "util" which
- * contains independent methods used occasionally 
- * by some part of the application.
+ * @file This file handles the "util" name space. 
  */
 
-/** creates the object */
+/** 
+ * The "util" name space contains independent methods used occasionally 
+ * by some part of the application.
+ * @namespace
+ */
 util = {};
 
 /**
@@ -17,6 +19,7 @@ util = {};
  * @param {boolean} [async] - Allows to append a script in a synchronous way or not. By default it's set to asynchronous.
  * @param {object} [callback] - The callback function that can send the user if the asynchronous way is chosen.
  * @return {object} script - The node which contains the script.
+ * @memberof util
  * @todo il y a un effet de bord à cause de la fonction privée utilisée.
  */
 util.addScript = function(url, async, callback){
@@ -117,6 +120,7 @@ util.addScript = function(url, async, callback){
  * case of object, method or function statement.
  * @function
  * @param {string} string - The string to run.
+ * @memberof util
  */
 util.runScript = function(string){
 	var script = document.createElement('script');
@@ -135,6 +139,7 @@ util.runScript = function(string){
  * @param {object} [callback] - The callback function that can send the user if the asynchronous way is chosen. The response text is send to the callback function.
  * @param {boolean} [async] - Allows to append a script in a synchronous way or not. By default it's set to asynchronous.
  * @return {object} The json object. 
+ * @memberof util
  * @todo Probleme sur le retour de la fonction, pourquoi le json n'est pas parsé et renvoyé dans le cas synchrone?
  */
 util.getJSON = function(url, callback, async){
@@ -174,6 +179,7 @@ util.getJSON = function(url, callback, async){
  * @param {string} event - The string representing the event. (e.g "click", "mousedown", ...)
  * @param {object} fn - The executed function when the event is triggered.
  * @param {boolean} [capture] - Allows to define if the user want to initiate the capture. Useful only with Firefox 
+ * @memberof util
  */
 util.addEvent = function(obj, event, fn, capture){
 	if(typeof(capture) == 'undefined'){
@@ -194,6 +200,7 @@ util.addEvent = function(obj, event, fn, capture){
  * @param {string} event - The string representing the event. (e.g "click", "mousedown", ...)
  * @param {object} fn - The function used to define the listener.
  * @param {boolean} [capture] - Allows to define if the user has wanted to initiate the capture. Useful only with Firefox 
+ * @memberof util
  */
 util.removeEvent = function(obj, event, fn, capture){
 	if(typeof(capture) == 'undefined'){
@@ -217,6 +224,7 @@ util.removeEvent = function(obj, event, fn, capture){
  * @param {object|string} supposedParentOrProp - The supposed parent or the tested property.
  * @param {string|number} [supposedValue] - The wished value of the tested property.
  * @return {boolean} The result of the test.
+ * @memberof util
  */
 util.hasParent = function(child, supposedParentOrProp, supposedValue){
 	if(typeof(supposedParentOrProp) == "string"){
@@ -264,6 +272,7 @@ util.hasParent = function(child, supposedParentOrProp, supposedValue){
  * @param {object} element - The DOM node whose style is sought.
  * @param {string} styleProp - The name of the style property.
  * @return {string|number} The property value found by the function.
+ * @memberof util
  */
 util.getStyle = function(element, styleProp){
 	var result = "";
@@ -294,6 +303,7 @@ util.getStyle = function(element, styleProp){
  * @function
  * @param {number} keyCode - The key code to convert.
  * @return {string} The result of the conversion.
+ * @memberof util
  */
 util.fromKeycodeToHtml = function(keyCode){
 	var result = "";
@@ -369,6 +379,7 @@ util.fromKeycodeToHtml = function(keyCode){
  * @function
  * @param {object} destination - The recipient object.
  * @param {object} source - The source.
+ * @memberof util
  */
 util.inherit = function(destination, source){
 	for (var element in source) {
@@ -380,12 +391,31 @@ util.inherit = function(destination, source){
  * defines the variables used by the application.
  */
 
-/** creates the scope */
+/** 
+ * The "app" scope contains the variables
+ * used by the application. For example,
+ * it contains all the settings, it also contains 
+ * the text displays on the interface.
+ * @namespace
+ */
 app = {}; 
  
+/** @memberof app */
 app.SETTING;  
-app.TEXT; // the object containing the text of the interface.
+
+/** 
+ * The object containing the text of the interface.
+ * @memberof app 
+ */
+app.TEXT;
+
+/** @memberof app */
 app.BTN_ADDLIST = document.getElementsByClassName("btn_addList")[0];
+
+/** 
+ * The client browser.
+ * @memberof app 
+ */
 app.BROWSER = "";
 
 (function(){
@@ -581,7 +611,8 @@ function changeLang(newLang){
 		}
 	}
 };/**
- * @file This file manages the context menu event.
+ * @file This file manages the context menu event. It allows
+ * to create a custom context menu.
  * In use the context menu can be hidden manually using the ContextMenu.hide method.
  * If the target to which you are assigned a context menu is destroyed, you must remove
  * its context menu using the ContextMenu.remove method. It takes the relevant target
@@ -592,16 +623,28 @@ function changeLang(newLang){
 
 (function(){
 	ContextMenu = {};
+	
+	/**
+	 * Allows to test if the custom context menu is visible.
+	 * @member {boolean} ContextMenu.visible
+	 */
 	ContextMenu.visible = false;
 	
 	/** the html element targeted by the context menu. */
 	ContextMenu.target; 
 	var setting = [];
 
+	/** adds the events handler */
 	util.addEvent(document, "contextmenu", oncontextmenu);
 	util.addEvent(document, "mousedown", onmousedown);
 	util.addEvent(document, "mouseup", onmouseup);
 
+	/**
+	 * Manage the oncontextmenu event.
+	 * @function
+	 * @private
+	 * @event
+	 */
 	function oncontextmenu(event){
 		var target = event.target || event.srcElement;
 
@@ -623,6 +666,8 @@ function changeLang(newLang){
 
 	/**
 	 * Manage the onmousedown event for the context menu
+	 * @function
+	 * @private
 	 * @event
 	 */
 	function onmousedown(event){
@@ -644,6 +689,8 @@ function changeLang(newLang){
 
 	/**
 	 * Manage the onmouseup event for the context menu
+	 * @function
+	 * @private
 	 * @event
 	 */
 	function onmouseup(event){
@@ -663,7 +710,7 @@ function changeLang(newLang){
 							
 							if(target.textContent == label){
 								/** 
-								 * Apply the defined action
+								 * applies the defined action
 								 * then remove the context menu.
 								 */
 								content[j].action();
@@ -678,7 +725,7 @@ function changeLang(newLang){
 	}
 
     /**
-     * create the context menu
+     * Creates the context menu
      * @function create
 	 * @private
      */
@@ -737,6 +784,7 @@ function changeLang(newLang){
    * @param {object} content - An object with the label of an action and a reference to the function which applies the action.
    * @param {string|object} content.label - The action name, it can be a function which recovers the value of a variable, in this case it must return a string.
    * @param {object} content.action - A reference to a function
+   * @memberof ContextMenu
    * @todo Manage the case that there's non content send by the user.
    */
    ContextMenu.add = function(){
@@ -759,6 +807,7 @@ function changeLang(newLang){
 	 * Remove a context menu
 	 * @function ContextMenu.remove
 	 * @param {object} target - the target of the context menu
+	 * @memberof ContextMenu
 	 */
 	ContextMenu.remove = function(target){
 		if(typeof(target) == "undefined" || typeof(target) == "string"){
@@ -775,6 +824,7 @@ function changeLang(newLang){
     /**
      * Remove the context menu if it's visible.
      * @function ContextMenu.hide
+	 * @memberof ContextMenu
      */
 	ContextMenu.hide = function(){
 		if(ContextMenu.visible){
@@ -787,13 +837,15 @@ function changeLang(newLang){
     /**
      * Return the html element of the button which contains the given text
      * @function ContextMenu.btn
+	 * @param {string} str - The text of the button that the user wants to retrieve. 
      * @return {object} The html element containing the text send in parameter.
+	 * @memberof ContextMenu
      */
-    ContextMenu.btn = function(string){
+    ContextMenu.btn = function(str){
 		if(ContextMenu.visible){
 			var childs = ContextMenu.dom.childNodes;
 			for(var i = 0; i < childs.length; i++){
-				if(childs[i].textContent == string){
+				if(childs[i].textContent == str){
 					return childs[i];
 				}
 			}
@@ -1171,10 +1223,12 @@ ListTitle.prototype.inheritStyleInput = function(newInput){
 function List(title, textBtnFooter){
 	List.counter++;
 
+	/** @default */
 	if(typeof(title) == "undefined"){
 		title = app.TEXT["New list"];
 	}
 
+	/** @default */
 	if(typeof(textBtnFooter) == "undefined"){
 		textBtnFooter = app.TEXT["Add a card"] + "...";
 	}
@@ -1187,7 +1241,7 @@ function List(title, textBtnFooter){
 	listHeader.className = "list-header";
 
 	/** 
-	 * @member {object} List.listTitle 
+	 * @member {object} List#listTitle 
 	 */
 	this.listTitle = new ListTitle(title, "h2");
 	this.listTitle.style.display = "inline-block";
@@ -1204,7 +1258,8 @@ function List(title, textBtnFooter){
 
 	/** 
 	 * The list body which contains cards.
-	 * @member {object} List.cardArea 
+	 * @member {object} List#cardArea 
+	 * @instance
 	 */
 	this.cardArea = document.createElement("div");
 	this.cardArea.className = "list-cardArea";
@@ -1212,7 +1267,7 @@ function List(title, textBtnFooter){
 
 	/** 
 	 * The "add list" button in the list footer.
-	 * @member {object} List.btnFooter
+	 * @member {object} List#btnFooter
 	 */
 	this.btnFooter = document.createElement("a");
 	this.btnFooter.className = "list-footer";
@@ -1231,43 +1286,43 @@ function List(title, textBtnFooter){
 
 	/** 
 	 * The position number of the current list according to the others.
-	 * @member {object} List.position
+	 * @member {number} List#position
 	 */
 	this.position = List.counter;
 	
 	/** 
 	 * It allows to now if the list is dragged by the user.
-	 * @member {object} List.dragged
+	 * @member {boolean} List#dragged
 	 */
 	this.dragged = false;
 	
 	/** 
 	 * It stores the horizontal offset of the list.
-	 * @member {object} List.offsetX
+	 * @member {number} List#offsetX
 	 */
 	this.offsetX = 0;
 	
 	/** 
 	 * It stores the vertical offset of the list.
-	 * @member {object} List.offsetX
+	 * @member {number} List#offsetX
 	 */
 	this.offsetY = 0;
 	
 	/** 
-	 * It allows to now if the list is clicked by the user.
-	 * @member {object} List.clicked
+	 * It allows to know if the list is clicked by the user.
+	 * @member {boolean} List#clicked
 	 */
 	this.clicked = false;
 	
 	/** 
 	 * It stores the node which represents the drop area of the list.
-	 * @member {object} List.dropArea
+	 * @member {object} List#dropArea
 	 */
 	this.dropArea = 'undefined';
 
 	/** 
 	 * It is used to handle cards.
-	 * @member {object} List.cardList
+	 * @member {object} List#cardList
 	 */
 	this.cardList = new Array;
 
@@ -1293,14 +1348,14 @@ function List(title, textBtnFooter){
 }
 
 /**
- * @memberof List.prototype
+ * @memberof List#
  */
 List.prototype.setPosition = function(newPosition){
 	this.position = newPosition;
 }
 
 /**
- * @memberof List.prototype
+ * @memberof List#
  */
 List.prototype.addCard = function(cardOrBool, bool){
 	var alreadyInDom = false;
@@ -1312,6 +1367,7 @@ List.prototype.addCard = function(cardOrBool, bool){
 	}else if(typeof(bool) == "boolean"){
 		editable = bool;
 	}else{
+		/** @default */
 		editable = true;
 	}
 
@@ -1339,7 +1395,7 @@ List.prototype.addCard = function(cardOrBool, bool){
 }
 
 /**
- * @memberof List.prototype
+ * @memberof List#
  */
 List.prototype.removeCard = function(card){
 	/** remove the card from the array */
@@ -1351,7 +1407,7 @@ List.prototype.removeCard = function(card){
 }
 
 /**
- * @memberof List.prototype
+ * @memberof List#
  */
 List.prototype.remove = function(){
 	/** removes the HTMLElement */
@@ -1365,7 +1421,7 @@ List.prototype.remove = function(){
 }
 
 /**
- * @memberof List.prototype
+ * @memberof List#
  * @event
  */
 List.prototype.EVENT_onmousedown = function(event){
@@ -1442,7 +1498,7 @@ List.prototype.EVENT_onmousedown = function(event){
 }
 
 /**
- * @memberof List.prototype
+ * @memberof List#
  * @event
  */
 List.prototype.EVENT_onmousemove = function(event){
@@ -1461,7 +1517,7 @@ List.prototype.EVENT_onmousemove = function(event){
 }
 
 /**
- * @memberof List.prototype
+ * @memberof List#
  * @event
  */
 List.prototype.EVENT_onmouseup = function(event){
@@ -1508,8 +1564,9 @@ List.prototype.EVENT_onmouseup = function(event){
 }
 
 /**
- * Flies over the other lists
- * @memberof List.prototype
+ * Handles when the other lists are overflew.
+ * @memberof List#
+ * @event
  */
 List.prototype.EVENT_onmouseover = function(event){
 	var maskTarget = event.target || event.srcElement;
@@ -1582,7 +1639,7 @@ List.prototype.EVENT_onmouseover = function(event){
 }
 
 /**
- * @memberof List.prototype
+ * @memberof List#
  */
 List.prototype.cardNumber = function(){
 	var count = 0;
@@ -1604,6 +1661,7 @@ List.prototype.cardNumber = function(){
  * @memberof List
  */
 List.createMask = function(emptyListOrList){
+	/** @default */
 	var emptyList = false;
 
 	if(typeof(emptyListOrList) == "boolean"){
@@ -1698,6 +1756,7 @@ List.removeMask = function(){
 List.counter = 0;
 
 /**
+ * Allows to show the created masks during execution.
  * @memberof List
  */
 List.showMask = false;
@@ -1806,7 +1865,7 @@ function Card(parentList, text){
 }
 
 /**
- * @memberof Card.prototype
+ * @memberof Card#
  */
 Card.prototype.setDraggable = function(bool){
 	if(bool){
@@ -1823,7 +1882,7 @@ Card.prototype.setDraggable = function(bool){
 }
 
 /**
- * @memberof Card.prototype
+ * @memberof Card#
  */
 Card.prototype.setEditable = function(bool){
 	if(bool && !this.editable){
@@ -1869,7 +1928,7 @@ Card.prototype.setEditable = function(bool){
 }
 
 /**
- * @memberof Card.prototype
+ * @memberof Card#
  */
 Card.prototype.remove = function(){
 	/** removes the card from the static list */
@@ -1892,7 +1951,7 @@ Card.prototype.remove = function(){
 }
 
 /**
- * @memberof Card.prototype
+ * @memberof Card#
  */
 Card.prototype.setText = function(newText){
 	this.text = newText;
@@ -1902,7 +1961,7 @@ Card.prototype.setText = function(newText){
 }
 
 /**
- * @memberof Card.prototype
+ * @memberof Card#
  */
 Card.prototype.getText = function(){
 	/** Delete the style tags */
@@ -1920,7 +1979,7 @@ Card.prototype.getText = function(){
 }
 
 /**
- * @memberof Card.prototype
+ * @memberof Card#
  * @event
  */
 Card.prototype.EVENT_onmousedown = function(event){
@@ -2001,7 +2060,7 @@ Card.prototype.EVENT_onmousedown = function(event){
 }
 
 /**
- * @memberof Card.prototype
+ * @memberof Card#
  * @event
  */
 Card.prototype.EVENT_onmousemove = function(event){
@@ -2022,7 +2081,7 @@ Card.prototype.EVENT_onmousemove = function(event){
 }
 
 /**
- * @memberof Card.prototype
+ * @memberof Card#
  * @event
  */
 Card.prototype.EVENT_onmouseup = function(event){
@@ -2075,7 +2134,8 @@ Card.prototype.EVENT_onmouseup = function(event){
 
 /**
  * Flies over the other cards or lists. 
- * @memberof Card.prototype
+ * @memberof Card#
+ * @event
  */
 Card.prototype.EVENT_onmouseover = function(event){
 	var target = event.target || event.srcElement;
@@ -2117,7 +2177,8 @@ Card.prototype.EVENT_onmouseover = function(event){
 }
 
 /**
- * @memberof Card.prototype
+ * @memberof Card#
+ * @event
  */
 Card.prototype.EVENT_onkeydown = function(event){
 	var target = event.target || event.srcElement;
@@ -2154,7 +2215,7 @@ Card.prototype.EVENT_onkeydown = function(event){
 }
 
 /**
- * @memberof Card.prototype
+ * @memberof Card#
  */
 Card.prototype.showEditBar = function(frameRate, firstIteration, secondIteration){
 	var anim = true;
@@ -2218,7 +2279,10 @@ Card.prototype.showEditBar = function(frameRate, firstIteration, secondIteration
 }
 
 /**
- * @memberof Card.prototype
+ * Allows to animate the edit bar.
+ * @function
+ * @param {number} [frameRate] - The number of milliseconds between two state change.
+ * @memberof Card#
  */
 Card.prototype.hideEditBar = function(frameRate, firstIteration){
 	var anim = true;
@@ -2236,6 +2300,7 @@ Card.prototype.hideEditBar = function(frameRate, firstIteration){
 	}
 
 	if(anim){
+		/** @default */
 		if(typeof(frameRate) == "undefined"){
 			var frameRate = 10;
 		}
@@ -2348,7 +2413,7 @@ Card.removeMask = function(){
 }
 
 /**
- * An array containing a reference to all cards
+ * An array containing a reference to each card
  * @memberof Card
  */
 Card.cardList = new Array;
@@ -2386,9 +2451,16 @@ function hideMask(){
 
 util.addEvent(app.BTN_ADDLIST, "click", function(){new List;});
 
-/** gets the lang menu */
+/** 
+ * gets the lang menu
+ * @memberof app
+ */
 app.LANG_MENU = document.getElementsByClassName('lang-menu')[0];
+
+/** @memberof app */
 app.LANG_MENU_HEAD = document.getElementsByClassName('lang-menu-head')[0];
+
+/** @memberof app */
 app.BTN_LANG_MENU = document.getElementsByClassName('lang-menu-btn')[0];
 
 /** displays the current language */

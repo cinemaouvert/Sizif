@@ -1,10 +1,12 @@
 /**
- * @file This file creates the "util" which
- * contains independent methods used occasionally 
- * by some part of the application.
+ * @file This file handles the "util" name space. 
  */
 
-/** creates the object */
+/** 
+ * The "util" name space contains independent methods used occasionally 
+ * by some part of the application.
+ * @namespace
+ */
 util = {};
 
 /**
@@ -17,6 +19,7 @@ util = {};
  * @param {boolean} [async] - Allows to append a script in a synchronous way or not. By default it's set to asynchronous.
  * @param {object} [callback] - The callback function that can send the user if the asynchronous way is chosen.
  * @return {object} script - The node which contains the script.
+ * @memberof util
  * @todo il y a un effet de bord à cause de la fonction privée utilisée.
  */
 util.addScript = function(url, async, callback){
@@ -117,6 +120,7 @@ util.addScript = function(url, async, callback){
  * case of object, method or function statement.
  * @function
  * @param {string} string - The string to run.
+ * @memberof util
  */
 util.runScript = function(string){
 	var script = document.createElement('script');
@@ -135,6 +139,7 @@ util.runScript = function(string){
  * @param {object} [callback] - The callback function that can send the user if the asynchronous way is chosen. The response text is send to the callback function.
  * @param {boolean} [async] - Allows to append a script in a synchronous way or not. By default it's set to asynchronous.
  * @return {object} The json object. 
+ * @memberof util
  * @todo Probleme sur le retour de la fonction, pourquoi le json n'est pas parsé et renvoyé dans le cas synchrone?
  */
 util.getJSON = function(url, callback, async){
@@ -174,6 +179,7 @@ util.getJSON = function(url, callback, async){
  * @param {string} event - The string representing the event. (e.g "click", "mousedown", ...)
  * @param {object} fn - The executed function when the event is triggered.
  * @param {boolean} [capture] - Allows to define if the user want to initiate the capture. Useful only with Firefox 
+ * @memberof util
  */
 util.addEvent = function(obj, event, fn, capture){
 	if(typeof(capture) == 'undefined'){
@@ -194,6 +200,7 @@ util.addEvent = function(obj, event, fn, capture){
  * @param {string} event - The string representing the event. (e.g "click", "mousedown", ...)
  * @param {object} fn - The function used to define the listener.
  * @param {boolean} [capture] - Allows to define if the user has wanted to initiate the capture. Useful only with Firefox 
+ * @memberof util
  */
 util.removeEvent = function(obj, event, fn, capture){
 	if(typeof(capture) == 'undefined'){
@@ -217,6 +224,7 @@ util.removeEvent = function(obj, event, fn, capture){
  * @param {object|string} supposedParentOrProp - The supposed parent or the tested property.
  * @param {string|number} [supposedValue] - The wished value of the tested property.
  * @return {boolean} The result of the test.
+ * @memberof util
  */
 util.hasParent = function(child, supposedParentOrProp, supposedValue){
 	if(typeof(supposedParentOrProp) == "string"){
@@ -264,6 +272,7 @@ util.hasParent = function(child, supposedParentOrProp, supposedValue){
  * @param {object} element - The DOM node whose style is sought.
  * @param {string} styleProp - The name of the style property.
  * @return {string|number} The property value found by the function.
+ * @memberof util
  */
 util.getStyle = function(element, styleProp){
 	var result = "";
@@ -294,6 +303,7 @@ util.getStyle = function(element, styleProp){
  * @function
  * @param {number} keyCode - The key code to convert.
  * @return {string} The result of the conversion.
+ * @memberof util
  */
 util.fromKeycodeToHtml = function(keyCode){
 	var result = "";
@@ -369,6 +379,7 @@ util.fromKeycodeToHtml = function(keyCode){
  * @function
  * @param {object} destination - The recipient object.
  * @param {object} source - The source.
+ * @memberof util
  */
 util.inherit = function(destination, source){
 	for (var element in source) {

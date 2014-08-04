@@ -1,14 +1,33 @@
 /**
  * @file This file handles the settings and
- * defines the variables used by the application.
+ * defines variables used by the application.
  */
 
-/** creates the scope */
+/** 
+ * The "app" scope contains the variables
+ * used by the application. For example,
+ * it contains all the settings, it also contains 
+ * the text displays on the interface.
+ * @namespace
+ */
 app = {}; 
  
+/** @memberof app */
 app.SETTING;  
-app.TEXT; // the object containing the text of the interface.
+
+/** 
+ * The object containing the text of the interface.
+ * @memberof app 
+ */
+app.TEXT;
+
+/** @memberof app */
 app.BTN_ADDLIST = document.getElementsByClassName("btn_addList")[0];
+
+/** 
+ * The client browser.
+ * @memberof app 
+ */
 app.BROWSER = "";
 
 (function(){
