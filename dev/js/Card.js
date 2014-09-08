@@ -94,8 +94,9 @@ function Card(parentList, text){
 	/** adds the context menu */
 	ContextMenu.add(card, 
 		{label: function(){ return app.TEXT["Add a card"]}, action: function(){card.parentList.addCard()}},
-		{label: function(){ return app.TEXT["Undo"]}, action: function(){}}, 
 		{label: function(){ return app.TEXT["Redo"]}, action: function(){}},
+		{label: function(){ return  app.TEXT["Undo"]}, action: function(){}}, 
+		{label: function(){ return app.TEXT["Remove the card"]}, action: function(){card.remove()}},
 		{label: function(){ return app.TEXT["Remove the list"]}, action: function(){card.parentList.remove()}}
 	)
 

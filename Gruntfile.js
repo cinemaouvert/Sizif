@@ -16,6 +16,8 @@ module.exports = function(grunt) {
 	var jsSrc = [
 		prefix + 'util.js',
 		prefix + 'app.js',
+		prefix + 'key.js',
+		prefix + 'Shortcut.js',
 		prefix + 'Translate.js',
 		prefix + 'ContextMenu.js',
 		prefix + 'ListTitle.js',
