@@ -1062,9 +1062,10 @@ function changeLang(newLang){
      * @function ContextMenu
      * @param {object} target - the target of the context menu
      * @param {array} content - A list of string or of functions which returns strings (useful for translation).
+	 * @param {array} [actionList] - The list of action in the same order than the label list.
      * @memberof ContextMenu
     */
-    ContextMenu = function(target, content){
+    ContextMenu = function(target, content, actionList){
 		if(typeof(target) != "object"){
 			throw "TypeError: the first argument in ContextMenu must be an HTMLElement.";
 		}
@@ -1081,7 +1082,7 @@ function changeLang(newLang){
 			remove(target);
 			
 			/** remove the user interface */
-			ui = undefined;
+			//ui = undefined;
 		};
 		
 		/** contains the DOM node of his context menu. */
@@ -1114,6 +1115,18 @@ function changeLang(newLang){
 		
 		memory.push({target: target, content: content, onPress: [], ui: ui});
 		
+		/** 
+		 * If the action list is defined, we add them. 
+		 * It doesn't care if the two list haven't the same length. 
+		 */
+		if(typeof(actionList) != "undefined"){
+			for(var i = 0; i < content.length; i++){
+				if(typeof(actionList[i]) != "undefined"){
+					ui.onPress(content[i], actionList[i]);
+				}
+			}
+		}
+		
 		return ui;
     }
 
@@ -1131,7 +1144,7 @@ function changeLang(newLang){
 		
 		for(var i = 0; i< memory.length; i++){
 			if(memory[i].target == target){
-				memory[i] = undefined;
+				memory[i] = "undefined";
 			}
 		}
 	}
@@ -1843,15 +1856,14 @@ function List(title, textBtnFooter){
 	util.addEvent(document, "mouseup", list.REF_EVENT_onmouseup);
 
 	/** add the context menu */
-	
 	list.cMenu = ContextMenu(list, [
-		function(){ return app.TEXT["Add a card"] },
-		function(){ return app.TEXT["Remove the list"] }
+			function(){ return app.TEXT["Add a card"] },
+			function(){ return app.TEXT["Remove the list"] }
+		],[
+			list.addCard.bind(list),
+			list.remove.bind(list)
 		]
 	)
-	
-	list.cMenu.onPress(function(){ return app.TEXT["Add a card"] }, list.addCard.bind(list));
-	list.cMenu.onPress(function(){ return app.TEXT["Remove the list"] }, list.remove.bind(list));
 	
 	return list;
 }
@@ -2315,19 +2327,22 @@ List.showMask = false;
 		card.appendChild(this.editionArea);
 		
 		/** the context menu of the edition area */
-		this.editionArea.cMenu = ContextMenu(this.editionArea, [
-			function(){ return app.TEXT["Undo"]},
-			function(){ return app.TEXT["Redo"]},
-			function(){ return app.TEXT["Bold"]},
-			function(){ return app.TEXT["Italic"]}
+		this.editionArea.cMenu = ContextMenu(this.editionArea, 
+			[ /** the labels of the context menu */
+				function(){ return app.TEXT["Undo"]},
+				function(){ return app.TEXT["Redo"]},
+				function(){ return app.TEXT["Bold"]},
+				function(){ return app.TEXT["Italic"]},
+				function(){ return app.TEXT["Underline"]}
+			],
+			[ /** the actions of the context menu */
+				this.editionArea.undo.bind(this.editionArea),
+				this.editionArea.redo.bind(this.editionArea),
+				this.editionArea.bold.bind(this.editionArea),
+				this.editionArea.italic.bind(this.editionArea),
+				this.editionArea.underline.bind(this.editionArea)
 			]
 		)
-		
-		/** the actions of the context menu */
-		this.editionArea.cMenu.onPress(function(){ return app.TEXT["Undo"]}, this.editionArea.undo.bind(this.editionArea) );
-		this.editionArea.cMenu.onPress(function(){ return app.TEXT["Redo"]}, this.editionArea.redo.bind(this.editionArea) );
-		this.editionArea.cMenu.onPress(function(){ return app.TEXT["Bold"]}, this.editionArea.bold.bind(this.editionArea) );
-		this.editionArea.cMenu.onPress(function(){ return app.TEXT["Italic"]}, this.editionArea.italic.bind(this.editionArea) );
 		
 		/** disable the context menu */
 		this.editionArea.cMenu.enable = false;
@@ -2388,16 +2403,15 @@ List.showMask = false;
 		
 		/** create the context menu */
 		card.cMenu = ContextMenu(card, [
-			function(){ return app.TEXT["Add a card"]}, 
-			function(){ return app.TEXT["Remove the card"]},
-			function(){ return app.TEXT["Remove the list"]}
+				function(){ return app.TEXT["Add a card"]}, 
+				function(){ return app.TEXT["Remove the card"]},
+				function(){ return app.TEXT["Remove the list"]}
+			],[ /** adds actions */
+				function(){card.parentList.addCard()},
+				function(){card.remove()},
+				function(){card.parentList.remove()}
 			]
 		)
-
-		/** adds the actions */
-		card.cMenu.onPress(function(){ return app.TEXT["Add a card"]}, function(){card.parentList.addCard()});
-		card.cMenu.onPress(function(){ return app.TEXT["Remove the card"]}, function(){card.remove()});
-		card.cMenu.onPress(function(){ return app.TEXT["Remove the list"]}, function(){card.parentList.remove()});
 		
 		/** return the created card */
 		return card;

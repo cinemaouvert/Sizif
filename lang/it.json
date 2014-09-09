@@ -10,5 +10,6 @@
 	"Undo"             : "Disfare",
 	"Redo"             : "Rifare",
 	"Bold"             : "Grassetto",
-	"Italic"           : "Corsivo"
+	"Italic"           : "Corsivo",
+	"Underline"        : "Sottolineare"
 }

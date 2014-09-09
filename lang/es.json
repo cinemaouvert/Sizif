@@ -10,5 +10,6 @@
 	"Undo"             : "Deshacer",
 	"Redo"             : "Rehacer",
 	"Bold"             : "Negrita",
-	"Italic"           : "Cursiva"
+	"Italic"           : "Cursiva",
+	"Underline"        : "Subrayar"
 }

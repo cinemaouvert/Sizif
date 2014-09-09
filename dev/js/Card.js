@@ -44,19 +44,22 @@
 		card.appendChild(this.editionArea);
 		
 		/** the context menu of the edition area */
-		this.editionArea.cMenu = ContextMenu(this.editionArea, [
-			function(){ return app.TEXT["Undo"]},
-			function(){ return app.TEXT["Redo"]},
-			function(){ return app.TEXT["Bold"]},
-			function(){ return app.TEXT["Italic"]}
+		this.editionArea.cMenu = ContextMenu(this.editionArea, 
+			[ /** the labels of the context menu */
+				function(){ return app.TEXT["Undo"]},
+				function(){ return app.TEXT["Redo"]},
+				function(){ return app.TEXT["Bold"]},
+				function(){ return app.TEXT["Italic"]},
+				function(){ return app.TEXT["Underline"]}
+			],
+			[ /** the actions of the context menu */
+				this.editionArea.undo.bind(this.editionArea),
+				this.editionArea.redo.bind(this.editionArea),
+				this.editionArea.bold.bind(this.editionArea),
+				this.editionArea.italic.bind(this.editionArea),
+				this.editionArea.underline.bind(this.editionArea)
 			]
 		)
-		
-		/** the actions of the context menu */
-		this.editionArea.cMenu.onPress(function(){ return app.TEXT["Undo"]}, this.editionArea.undo.bind(this.editionArea) );
-		this.editionArea.cMenu.onPress(function(){ return app.TEXT["Redo"]}, this.editionArea.redo.bind(this.editionArea) );
-		this.editionArea.cMenu.onPress(function(){ return app.TEXT["Bold"]}, this.editionArea.bold.bind(this.editionArea) );
-		this.editionArea.cMenu.onPress(function(){ return app.TEXT["Italic"]}, this.editionArea.italic.bind(this.editionArea) );
 		
 		/** disable the context menu */
 		this.editionArea.cMenu.enable = false;
@@ -117,16 +120,15 @@
 		
 		/** create the context menu */
 		card.cMenu = ContextMenu(card, [
-			function(){ return app.TEXT["Add a card"]}, 
-			function(){ return app.TEXT["Remove the card"]},
-			function(){ return app.TEXT["Remove the list"]}
+				function(){ return app.TEXT["Add a card"]}, 
+				function(){ return app.TEXT["Remove the card"]},
+				function(){ return app.TEXT["Remove the list"]}
+			],[ /** adds actions */
+				function(){card.parentList.addCard()},
+				function(){card.remove()},
+				function(){card.parentList.remove()}
 			]
 		)
-
-		/** adds the actions */
-		card.cMenu.onPress(function(){ return app.TEXT["Add a card"]}, function(){card.parentList.addCard()});
-		card.cMenu.onPress(function(){ return app.TEXT["Remove the card"]}, function(){card.remove()});
-		card.cMenu.onPress(function(){ return app.TEXT["Remove the list"]}, function(){card.parentList.remove()});
 		
 		/** return the created card */
 		return card;

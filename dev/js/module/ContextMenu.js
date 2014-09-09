@@ -25,9 +25,10 @@
      * @function ContextMenu
      * @param {object} target - the target of the context menu
      * @param {array} content - A list of string or of functions which returns strings (useful for translation).
+	 * @param {array} [actionList] - The list of action in the same order than the label list.
      * @memberof ContextMenu
     */
-    ContextMenu = function(target, content){
+    ContextMenu = function(target, content, actionList){
 		if(typeof(target) != "object"){
 			throw "TypeError: the first argument in ContextMenu must be an HTMLElement.";
 		}
@@ -44,7 +45,7 @@
 			remove(target);
 			
 			/** remove the user interface */
-			ui = undefined;
+			//ui = undefined;
 		};
 		
 		/** contains the DOM node of his context menu. */
@@ -77,6 +78,18 @@
 		
 		memory.push({target: target, content: content, onPress: [], ui: ui});
 		
+		/** 
+		 * If the action list is defined, we add them. 
+		 * It doesn't care if the two list haven't the same length. 
+		 */
+		if(typeof(actionList) != "undefined"){
+			for(var i = 0; i < content.length; i++){
+				if(typeof(actionList[i]) != "undefined"){
+					ui.onPress(content[i], actionList[i]);
+				}
+			}
+		}
+		
 		return ui;
     }
 
@@ -94,7 +107,7 @@
 		
 		for(var i = 0; i< memory.length; i++){
 			if(memory[i].target == target){
-				memory[i] = undefined;
+				memory[i] = "undefined";
 			}
 		}
 	}

@@ -10,5 +10,6 @@
 	"Undo"             : "Rückgängig machen",
 	"Redo"             : "Noch einmal machen",
 	"Bold"             : "Fettdruck",
-	"Italic"           : "Kursive"
+	"Italic"           : "Kursive",
+	"Underline"        : "Unterstreichen"
 }

@@ -10,5 +10,6 @@
 	"Undo"             : "Undo",
 	"Redo"             : "Redo",
 	"Bold"             : "Bold",
-	"Italic"           : "Italic"
+	"Italic"           : "Italic",
+	"Underline"        : "Underline"
 }

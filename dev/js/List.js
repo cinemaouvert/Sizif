@@ -126,15 +126,14 @@ function List(title, textBtnFooter){
 	util.addEvent(document, "mouseup", list.REF_EVENT_onmouseup);
 
 	/** add the context menu */
-	
 	list.cMenu = ContextMenu(list, [
-		function(){ return app.TEXT["Add a card"] },
-		function(){ return app.TEXT["Remove the list"] }
+			function(){ return app.TEXT["Add a card"] },
+			function(){ return app.TEXT["Remove the list"] }
+		],[
+			list.addCard.bind(list),
+			list.remove.bind(list)
 		]
 	)
-	
-	list.cMenu.onPress(function(){ return app.TEXT["Add a card"] }, list.addCard.bind(list));
-	list.cMenu.onPress(function(){ return app.TEXT["Remove the list"] }, list.remove.bind(list));
 	
 	return list;
 }

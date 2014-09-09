@@ -10,5 +10,6 @@
 	"Undo"             : "Annuler",
 	"Redo"             : "Rétablir",
 	"Bold"             : "Gras",
-	"Italic"           : "Italique"
+	"Italic"           : "Italique",
+	"Underline"        : "Souligner"
 }
