@@ -8,5 +8,7 @@
 	"Remove the list"  : "Die liste zu löschen",
 	"New card"         : "Neue karte",
 	"Undo"             : "Rückgängig machen",
-	"Redo"             : "Noch einmal machen"
+	"Redo"             : "Noch einmal machen",
+	"Bold"             : "Fettdruck",
+	"Italic"           : "Kursive"
 }

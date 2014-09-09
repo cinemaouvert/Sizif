@@ -8,5 +8,7 @@
 	"Remove the list"  : "Supprimer la liste",
 	"New card"         : "Nouvelle carte",
 	"Undo"             : "Annuler",
-	"Redo"             : "Rétablir"
+	"Redo"             : "Rétablir",
+	"Bold"             : "Gras",
+	"Italic"           : "Italique"
 }

@@ -792,6 +792,120 @@ key = {
 	addEvent(document, "keydown", onkeydown);
 
 })();
+;
+(function(){
+
+	/**
+	 *
+	 * @function RichTextArea
+	 * @param {string|object} input - The object to augment or the tag of the object to create.
+	 */
+	RichTextArea = function(input){
+		var RTA;
+
+		if(typeof(input) == "undefined"){
+			RTA = document.createElement("div");
+		}else if(typeof(input) == "string"){
+			RTA = document.createElement(input);
+		}else if(typeof(input) == "object"){
+			RTA = input;
+		}
+
+		var defTxt = RTA.innerHTML;
+		//if (document.compForm.switchMode.checked){
+			//setDocMode(true);
+		//}
+		RTA.contentEditable = true;
+
+		function formatDoc(cmd, value){
+  			if(validateMode()){
+  				document.execCommand(cmd, false, value);
+  				RTA.focus();
+  			}
+		}
+
+		function validateMode(){
+		  	//if(!document.compForm.switchMode.checked){
+		  		return true;
+		  	//}
+		  	//alert("Uncheck \"Show HTML\".");
+		  	RTA.focus();
+		  	return false;
+		}
+
+		function setDocMode(bToSource){
+		  	var content;
+		  	if(bToSource){
+		    	content = document.createTextNode(RTA.innerHTML);
+		    	RTA.innerHTML = "";
+		    	var pre = document.createElement("pre");
+		    	RTA.contentEditable = false;
+		    	pre.id = "sourceText";
+		    	pre.contentEditable = true;
+		    	pre.appendChild(content);
+		    	RTA.appendChild(pre);
+		  	}else{
+		    	if(document.all){
+		      	RTA.innerHTML = RTA.innerText;
+		    	}else{
+		      	content = document.createRange();
+		      	content.selectNodeContents(RTA.firstChild);
+		      	RTA.innerHTML = content.toString();
+		    	}
+		    	RTA.contentEditable = true;
+		  	}
+		  	RTA.focus();
+		}
+
+		function printDoc() {
+		  	if(!validateMode()){
+		  		return;
+		  	}
+		  	var printWin = window.open("","_blank","width=450,height=470,left=400,top=100,menubar=yes,toolbar=no,location=no,scrollbars=yes");
+		  	printWin.document.open();
+		  	printWin.document.write("<!doctype html><html><head><title>Print<\/title><\/head><body onload=\"print();\">" + RTA.innerHTML + "<\/body><\/html>");
+		  	printWin.document.close();
+		}
+
+		/**
+		 * Creating all the functionalities
+		 */
+		RTA.clean = function(){
+			if(validateMode() && confirm('Are you sure?')){
+				RTA.innerHTML = "";
+			};
+		};
+		RTA.print = function(){printDoc()};
+		RTA.undo = function(){formatDoc('undo')};
+		RTA.redo = function(){formatDoc('redo')};
+		RTA.removeFormat = function(){formatDoc('removeFormat')};
+		RTA.bold = function(){formatDoc('bold')};
+		RTA.italic = function(){formatDoc('italic')};
+		RTA.underline = function(){formatDoc('underline')};
+		RTA.leftAlign = function(){formatDoc('justifyleft')};
+		RTA.centerAlign = function(){formatDoc('justifycenter')};
+		RTA.rightAlign = function(){formatDoc('justifyright')};
+		RTA.numberedList = function(){formatDoc('insertorderedlist')};
+		RTA.dottedList = function(){formatDoc('insertunorderedlist')};
+		RTA.quote = function(){formatDoc('formatblock', 'blockquote')};
+		RTA.addIndent = function(){formatDoc('outdent')};
+		RTA.deleteIndent = function(){formatDoc('indent')};
+		RTA.deleteIndent = function(){formatDoc('indent')};
+		RTA.hyperlink = function(link){
+			if(link && link != '' && link != 'http://'){
+				formatDoc('createlink',link)
+			}
+		};
+		RTA.cut = function(){formatDoc('cut')};
+		RTA.copy = function(){formatDoc('copy')};
+		RTA.paste = function(){formatDoc('paste')};
+
+		if(typeof(input) == "string" || typeof(input) == "undefined"){
+			return RTA;
+		}
+	}
+
+})()
 ;/**
  * @file This file manages translations and provides a function which allows the user to change the lang
  * of the interface.
@@ -928,12 +1042,136 @@ function changeLang(newLang){
  * If the target to which you are assigned a context menu is destroyed, you must remove
  * its context menu using the ContextMenu.remove method. It takes the relevant target
  * as argument. 
- * @todo créer une zone de raccourci
+ * @todo créer une zone de raccourci (d'une manière général créer sur chaque boutons d'avantage de zones.)
+ * @todo gérer les cas ou l'utilisateur n'envoi aucun contenu
+ * @todo gérer les cas ou l'utilisateur défini plusieurs menu contextuels pour une même cible.
+ * @todo permettre une vrai suppression de la mémoire (pour l'instant on ne fait que la mettre en "undefined").
  * @author Yohann Vioujard
  */
 
 (function(){
-	ContextMenu = {};
+	/** the memory containing the informations about all the context menus */
+	var memory = [];
+	
+	/** the identifier of the current context menu in the memory */
+	var currentId; 
+
+	/**
+     * Add a context menu
+     * There's a content object by label and as much content object as you want
+     * @function ContextMenu
+     * @param {object} target - the target of the context menu
+     * @param {array} content - A list of string or of functions which returns strings (useful for translation).
+     * @memberof ContextMenu
+    */
+    ContextMenu = function(target, content){
+		if(typeof(target) != "object"){
+			throw "TypeError: the first argument in ContextMenu must be an HTMLElement.";
+		}
+		
+		var id = memory.length;
+		
+		// THE USER INTERFACE
+		/** create the user object */
+		var ui = {};
+		
+		/** allows to remove the context menu */
+		ui.remove = function(){ 
+			/** remove the context menu */
+			remove(target);
+			
+			/** remove the user interface */
+			ui = undefined;
+		};
+		
+		/** contains the DOM node of his context menu. */
+		ui.node = undefined;
+		
+		/** 
+		 * test if the target is a node member of the context menu handle by the UI.
+		 * @function
+		 */
+		ui.member = function(DOMNode){
+			if(typeof(ui.node) != "undefined"){
+				if(DOMNode == ui.node || util.hasParent(DOMNode, ui.node)){
+					return true;
+				}
+			}
+			return false;
+		}
+		
+		/** allows to enable or disable the context menu of the element. */
+		ui.enable = true;
+		
+		/**
+		 * Allows to determine the action to do when a button is pressed.
+		 * @function
+		 * @param {string|function} label - the text on the button which will be pressed. It may be a function which return a string.
+		 */
+		ui.onPress = function(label, callback){
+			memory[id].onPress.push({label: label, action: callback})
+		};
+		
+		memory.push({target: target, content: content, onPress: [], ui: ui});
+		
+		return ui;
+    }
+
+	/**
+	 * Remove a context menu
+	 * @function remove
+	 * @private
+	 * @param {object} target - the target of the context menu
+	 * @memberof ContextMenu
+	 */
+	function remove(target){
+		if(typeof(target) == "undefined" || typeof(target) == "string"){
+			throw "The first argument in ContextMenu.remove must be an HTMLElement.";
+		}
+		
+		for(var i = 0; i< memory.length; i++){
+			if(memory[i].target == target){
+				memory[i] = undefined;
+			}
+		}
+	}
+   
+    /**
+     * Remove the context menu if it's visible.
+     * @function ContextMenu.hide
+	 * @memberof ContextMenu
+     */
+	ContextMenu.hide = function(){
+		if(ContextMenu.visible){
+			ContextMenu.visible = false;
+			ContextMenu.target = undefined;
+			ContextMenu.node.parentNode.removeChild(ContextMenu.node);
+			ContextMenu.node = undefined;
+			
+			/** remove the node from the user interface. */
+			memory[currentId].ui.node = undefined;
+		}
+	}
+
+    /**
+     * Return the html element of the button which contains the given text
+     * @function ContextMenu.btn
+	 * @param {string} str - The text of the button that the user wants to retrieve. 
+     * @return {object} The html element containing the text send in parameter.
+	 * @memberof ContextMenu
+     */
+    ContextMenu.btn = function(str){
+		if(ContextMenu.visible){
+			var childs = ContextMenu.node.childNodes;
+			for(var i = 0; i < childs.length; i++){
+				if(childs[i].textContent == str){
+					return childs[i];
+				}
+			}
+		}else{
+			return false;
+		}
+    }
 	
 	/**
 	 * Allows to test if the custom context menu is visible.
@@ -941,9 +1179,11 @@ function changeLang(newLang){
 	 */
 	ContextMenu.visible = false;
 	
-	/** the html element targeted by the context menu. */
+	/** the dom node targeted by the context menu module. */
 	ContextMenu.target; 
-	var setting = [];
+	
+	/** contains the dom node of the context menu when it's visible. */
+	ContextMenu.node; 
 
 	/** adds the events handler */
 	util.addEvent(document, "contextmenu", oncontextmenu);
@@ -952,25 +1192,32 @@ function changeLang(newLang){
 
 	/**
 	 * Manage the oncontextmenu event.
+	 * Makes appear the context menu.
 	 * @function
 	 * @private
 	 * @event
 	 */
 	function oncontextmenu(event){
 		var target = event.target || event.srcElement;
+		ContextMenu.target = target;
 
-		if(target["className"] == "list" || util.hasParent(target, "className", "list")){
-			ContextMenu.target = target;
+		/** prevents the default behaviour */
+		event.returnValue = false;
+		if(event.preventDefault){
+			event.preventDefault();
+		}
 
-			/** prevent the default behaviour */
-			event.returnValue = false;
-			if(event.preventDefault){
-				event.preventDefault();
-			}
+		var mouseX = event.clientX + document.documentElement.scrollLeft + document.body.scrollLeft;
+		var mouseY = event.clientY + document.documentElement.scrollTop + document.body.scrollTop;
 
-			var mouseX = event.clientX + document.documentElement.scrollLeft + document.body.scrollLeft;
-			var mouseY = event.clientY + document.documentElement.scrollTop + document.body.scrollTop;
-
+		/** find the appropriate context menu */
+		var resp = findContextMenu(ContextMenu.target);
+		
+		if(resp != -1){
+			/** records the identifier of the current context menu */
+			currentId = resp;
+			
+			/** launches the creation of the context menu. */
 			create(mouseX, mouseY);
 		}
 	}
@@ -984,7 +1231,7 @@ function changeLang(newLang){
 	function onmousedown(event){
 		var target = event.target || event.srcElement;
 
-		if(ContextMenu.visible && target != ContextMenu.dom && !util.hasParent(target, ContextMenu.dom)){
+		if(ContextMenu.visible && target != ContextMenu.node && !util.hasParent(target, ContextMenu.node)){
 			ContextMenu.hide();
 			return;
 		}
@@ -999,7 +1246,8 @@ function changeLang(newLang){
 	}
 
 	/**
-	 * Manage the onmouseup event for the context menu
+	 * Manage the onmouseup event for the context menu.
+	 * When the user click on an item of the context menu.
 	 * @function
 	 * @private
 	 * @event
@@ -1009,26 +1257,34 @@ function changeLang(newLang){
 			var target = event.target || event.srcElement;
 
 			if(target.className == "ContextMenu-btn"){
-				for(var i = 0; i < setting.length; i++){
-					if(ContextMenu.target == setting[i].target || util.hasParent(ContextMenu.target, setting[i].target)){
-						
-						var content = setting[i].content;
-						for(var j = 0; j < content.length; j++){
-							var label = content[j].label;
-							if(label instanceof Function){
-								label = label();
+				/** uses the identifier of the current context menu to get the content. */
+				var content = memory[currentId].content;
+				
+				/** treats the pressed label */
+				for(var i = 0; i < content.length; i++){
+					var label = content[i];
+					if(label instanceof Function){
+						label = label();
+					}
+					
+					if(target.textContent == label){
+						/** 
+						 * applies the defined action
+						 * then remove the context menu.
+						 */
+						var onPress = memory[currentId].onPress;
+						for(var k = 0; k < onPress.length; k++){
+							var onPressLabel = onPress[k].label;
+							if(onPressLabel  instanceof Function){
+								onPressLabel = onPressLabel();
 							}
-							
-							if(target.textContent == label){
-								/** 
-								 * applies the defined action
-								 * then remove the context menu.
-								 */
-								content[j].action();
-								ContextMenu.hide();
-								return;
+						
+							if(onPressLabel == label){
+								onPress[k].action();
 							}
 						}
+						ContextMenu.hide();
+						return;
 					}
 				}
 			}
@@ -1041,130 +1297,63 @@ function changeLang(newLang){
 	 * @private
      */
 	function create(mouseX, mouseY){
-		for(var i = 0; i < setting.length; i++){
-			var uCanCreate = true;
-
-			if(util.hasParent(ContextMenu.target, setting[i].target)){
-				/** check if the parent isn't defined too, manage conflicts */
-				for(var k = 0; k < setting.length; k++){
-					if(setting[k].target == ContextMenu.target){
-						uCanCreate = false;
-					}else if(setting[k].target != setting[i].target
-						&& util.hasParent(setting[k].target, setting[i].target)
-						&& (util.hasParent(ContextMenu.target, setting[k].target)
-						|| setting[k].target == ContextMenu.target)){
-						uCanCreate = false;
-					}
-				}
-			}else if(ContextMenu.target != setting[i].target){
-				uCanCreate = false;
-			}
-			if(uCanCreate){
-				/** built the context menu */
-				ContextMenu.visible = true;
-
-				ContextMenu.dom = document.createElement("div");
-				ContextMenu.dom.className = "ContextMenu";
-				ContextMenu.dom.style.position = "fixed";
-				ContextMenu.dom.style.left = mouseX + "px";
-				ContextMenu.dom.style.top = mouseY + "px";
-				document.body.appendChild(ContextMenu.dom);
-
-				var content = setting[i].content
-				for(var j = 0; j < content.length; j++){
-					var label = content[j].label;
-					if(label instanceof Function){
-						label = label();
-					}
-				
-					var newBtn = document.createElement("div");
-					newBtn.className = "ContextMenu-btn";
-					newBtn.setAttribute("data-translatable", true);
-					newBtn.innerHTML = label;
-					ContextMenu.dom.appendChild(newBtn);
-				}
-			}
-		}
-	}
-
-  /**
-   * Add a context menu
-   * There's a content object by label and as much content object as you want
-   * @function ContextMenu.add
-   * @param {object} target - the target of the context menu
-   * @param {object} content - An object with the label of an action and a reference to the function which applies the action.
-   * @param {string|object} content.label - The action name, it can be a function which recovers the value of a variable, in this case it must return a string.
-   * @param {object} content.action - A reference to a function
-   * @memberof ContextMenu
-   * @todo Manage the case that there's non content send by the user.
-   */
-   ContextMenu.add = function(){
-		if(typeof(arguments[0]) != "object"){
-			throw "TypeError: the first argument in ContextMenu.add must be an HTMLElement.";
-		}
-		var target = arguments[0];
-		var content = [];
+		var content = memory[currentId].content;
 		
-		for(var i = 0; i< arguments.length; i++){
-			if(i != 0){
-				content.push(arguments[i]);
+		/** built the context menu */
+		ContextMenu.visible = true;
+
+		ContextMenu.node = document.createElement("div");
+		ContextMenu.node.className = "ContextMenu";
+		ContextMenu.node.style.position = "fixed";
+		ContextMenu.node.style.left = mouseX + "px";
+		ContextMenu.node.style.top = mouseY + "px";
+		document.body.appendChild(ContextMenu.node);
+
+		for(var j = 0; j < content.length; j++){
+			var label = content[j];
+			if(label instanceof Function){
+				label = label();
 			}
+		
+			var newBtn = document.createElement("div");
+			newBtn.className = "ContextMenu-btn";
+			newBtn.setAttribute("data-translatable", true);
+			newBtn.innerHTML = label;
+			ContextMenu.node.appendChild(newBtn);
 		}
 		
-		setting.push({target: target, content: content})
-   }
-
-	/**
-	 * Remove a context menu
-	 * @function ContextMenu.remove
-	 * @param {object} target - the target of the context menu
-	 * @memberof ContextMenu
-	 */
-	ContextMenu.remove = function(target){
-		if(typeof(target) == "undefined" || typeof(target) == "string"){
-			throw "The first argument in ContextMenu.remove must be an HTMLElement.";
-		}
-		
-		for(var i = 0; i< setting.length; i++){
-			if(setting[i].target == target){
-				setting.splice(i, 1);
-			}
-		}
+		/** puts a reference to the DOM node of the context menu into the user interface. */
+		memory[currentId].ui.node = ContextMenu.node;
 	}
-   
-    /**
-     * Remove the context menu if it's visible.
-     * @function ContextMenu.hide
-	 * @memberof ContextMenu
-     */
-	ContextMenu.hide = function(){
-		if(ContextMenu.visible){
-			ContextMenu.visible = false;
-			ContextMenu.target = "undefined";
-			ContextMenu.dom.parentNode.removeChild(ContextMenu.dom);
-		}
-	}
-
-    /**
-     * Return the html element of the button which contains the given text
-     * @function ContextMenu.btn
-	 * @param {string} str - The text of the button that the user wants to retrieve. 
-     * @return {object} The html element containing the text send in parameter.
-	 * @memberof ContextMenu
-     */
-    ContextMenu.btn = function(str){
-		if(ContextMenu.visible){
-			var childs = ContextMenu.dom.childNodes;
-			for(var i = 0; i < childs.length; i++){
-				if(childs[i].textContent == str){
-					return childs[i];
-				}
-			}
-		}else{
-			return false;
-		}
-    }
 	
+	/** 
+	 * Allows to know if a target has an enable context menu or a 
+	 * parent with an enable context menu.
+	 * Return the identifier in the "memory" attribute of the context menu if it finds it.
+	 * If it has found nothing, it returns -1.
+	 * @function
+	 * @private
+	 */
+	function findContextMenu(target){
+		result = -1;
+		
+		/** find the target */
+		for(var i = 0; i < memory.length; i++){
+			if(memory[i].target == target){
+				if(memory[i].ui.enable){
+					result = i;
+				}
+				break;
+			}
+		}
+
+		/** if nothing was found, search the parent */
+		if(result == -1 && target != document.body){
+			result = findContextMenu(target.parentNode);
+		}
+		
+		return result;
+	}
 })()
 ;/** @file This file contains the ListTitle class. */
 
@@ -1654,11 +1843,16 @@ function List(title, textBtnFooter){
 	util.addEvent(document, "mouseup", list.REF_EVENT_onmouseup);
 
 	/** add the context menu */
-	ContextMenu.add(list, 
-		{label: function(){ return app.TEXT["Add a card"] }, action: list.addCard.bind(list)},
-		{label: function(){ return app.TEXT["Remove the list"] }, action: list.remove.bind(list)}
+	
+	list.cMenu = ContextMenu(list, [
+		function(){ return app.TEXT["Add a card"] },
+		function(){ return app.TEXT["Remove the list"] }
+		]
 	)
-
+	
+	list.cMenu.onPress(function(){ return app.TEXT["Add a card"] }, list.addCard.bind(list));
+	list.cMenu.onPress(function(){ return app.TEXT["Remove the list"] }, list.remove.bind(list));
+	
 	return list;
 }
 
@@ -1706,7 +1900,7 @@ List.prototype.addCard = function(cardOrBool, bool){
 
 	var index = this.cardList.length;
 	this.cardList[index] = card;
-	card.cardText.focus(); // A VIRER
+	card.editionArea.focus(); // A VIRER
 }
 
 /**
@@ -1729,7 +1923,7 @@ List.prototype.remove = function(){
 	this.parentNode.removeChild(this);
 	
 	/** removes the context menu */
-	ContextMenu.remove(this)
+	this.cMenu.remove();
 	
 	/** decrements the counter */
 	List.counter--;
@@ -2077,663 +2271,733 @@ List.counter = 0;
 List.showMask = false;
 ;/** @file This file contains the Card class. */
 
-/**
- * Provides cards
- * @constructor
- * @param {object} parentList - The list which contains the card.
- * @param {string} [text] - The card's text.
- * @returns {object} card - The DOM object representing the card.
- */
-function Card(parentList, text){
-	if(typeof(parentList) == "undefined"){
-		throw "The card must have a parent list to be create.";
-	}
+(function(){
 
-	/** defines as draggable all the other cards */
-	if(Card.cardList.length > 0){
-		for(var element in Card.cardList){
-			if(Card.cardList[element].editable){
-				Card.cardList[element].setDraggable(true);
-		 	}
+	/** private attributes */
+	var list_onPressBtnClose = [];
+	var list_onPressBtnEdit = [];
+
+	/**
+	 * Provides cards
+	 * @constructor
+	 * @param {object} parentList - The list which contains the card.
+	 * @param {string} [text] - The card's text.
+	 * @returns {object} card - The DOM object representing the card.
+	 */
+	Card = function(parentList, text){
+		if(typeof(parentList) == "undefined"){
+			throw "The card must have a parent list to be create.";
 		}
-	}
 
-	Card.cardList.push(this);
-
-	this.parentList = parentList;
-	this.text = "";
-	this.textHtml = "";
-
-	/** creates the card in the DOM */
-	var card = document.createElement("div");
-	card.className = "card";
-
-	/** the text */
-	this.cardText = document.createElement("div");
-	this.cardText.className = "card-text";
-	this.cardText.setAttribute("data-translatable", true);
-	card.appendChild(this.cardText);
-
-	/** the edit bar */
-	this.editBar = document.createElement("div");
-	this.editBar.style.top = "100%";
-	this.editBar.className = "card-editBar";
-	card.appendChild(this.editBar);
-
-	/** close Button */
-	this.btnClose = document.createElement("div");
-	this.btnClose.className = "card-btnClose";
-	this.editBar.appendChild(this.btnClose);
-
-	/** edit Button */
-	this.btnEdit = document.createElement("div");
-	this.btnEdit.className = "card-btnEdit";
-	this.editBar.appendChild(this.btnEdit);
-
-	if(typeof(text) != "undefined"){
-		this.setText(text);
-	}else{
-		this.setText(app.TEXT["New card"]);
-	}
-
-	this.offsetX = 0;
-	this.offsetY = 0;
-	this.dropArea;
-	this.dragged = false;
-	this.draggable = false;
-	this.editable = false;
-
-	/** hides the edit bar */
-	this.anim;
-	this.editBarVisible = false;
-	this.editBarAnimated = false;
-	this.hideEditBar();
-
-	/** the card inherit from the current object */
-	util.inherit(card, this);
-
-	/** references on functions which handle animations. */
-	card.REF_EVENT_onmousedown = card.EVENT_onmousedown.bind(card);
-	card.REF_EVENT_onmousemove = card.EVENT_onmousemove.bind(card);
-	card.REF_EVENT_onmouseup = card.EVENT_onmouseup.bind(card);
-	card.REF_EVENT_onmouseover = card.EVENT_onmouseover.bind(card);
-	card.REF_EVENT_onkeydown = card.EVENT_onkeydown.bind(card);
-
-	/** events */
-	util.addEvent(document, "mousedown", card.REF_EVENT_onmousedown);
-	util.addEvent(document, "mouseover", card.REF_EVENT_onmouseover);
-	util.addEvent(document, "mouseup", card.REF_EVENT_onmouseup);
-	util.addEvent(document, "mousemove", card.REF_EVENT_onmousemove);
-
-	/** set the current card as editable */
-	card.setEditable(true);
-	
-	/** adds the context menu */
-	ContextMenu.add(card, 
-		{label: function(){ return app.TEXT["Add a card"]}, action: function(){card.parentList.addCard()}},
-		{label: function(){ return app.TEXT["Redo"]}, action: function(){}},
-		{label: function(){ return  app.TEXT["Undo"]}, action: function(){}}, 
-		{label: function(){ return app.TEXT["Remove the card"]}, action: function(){card.remove()}},
-		{label: function(){ return app.TEXT["Remove the list"]}, action: function(){card.parentList.remove()}}
-	)
-
-	/** return the created card */
-	return card;
-}
-
-/**
- * @memberof Card#
- */
-Card.prototype.setDraggable = function(bool){
-	if(bool){
-		if(!this.draggable){
-			this.draggable = true;
-			this.setEditable(false);
+		/** defines as draggable all the other cards */
+		if(Card.cardList.length > 0){
+			for(var element in Card.cardList){
+				if(Card.cardList[element].editable){
+					Card.cardList[element].setDraggable(true);
+				}
+			}
 		}
-	}else{
-		if(this.draggable){
-			this.draggable = false;
-			this.setEditable(true);
-		}
-	}
-}
 
-/**
- * @memberof Card#
- */
-Card.prototype.setEditable = function(bool){
-	if(bool && !this.editable){
-		this.editable = true;
-		this.setDraggable(false);
-		this.hideEditBar(12);
+		Card.cardList.push(this);
+
+		this.parentList = parentList;
+		this.text = "";
+		this.textHTML = "";
+
+		/** creates the card in the DOM */
+		var card = document.createElement("div");
+		card.className = "card";
+
+		/** the edition area */
+		this.editionArea = new RichTextArea("div");
+		this.editionArea.className = "card-text";
+		this.editionArea.setAttribute("data-translatable", true);
+		card.appendChild(this.editionArea);
 		
-		this.cardText.contentEditable = true;
-		this.cardText.style.cursor = "text";
-		this.cardText.focus();
+		/** the context menu of the edition area */
+		this.editionArea.cMenu = ContextMenu(this.editionArea, [
+			function(){ return app.TEXT["Undo"]},
+			function(){ return app.TEXT["Redo"]},
+			function(){ return app.TEXT["Bold"]},
+			function(){ return app.TEXT["Italic"]}
+			]
+		)
+		
+		/** the actions of the context menu */
+		this.editionArea.cMenu.onPress(function(){ return app.TEXT["Undo"]}, this.editionArea.undo.bind(this.editionArea) );
+		this.editionArea.cMenu.onPress(function(){ return app.TEXT["Redo"]}, this.editionArea.redo.bind(this.editionArea) );
+		this.editionArea.cMenu.onPress(function(){ return app.TEXT["Bold"]}, this.editionArea.bold.bind(this.editionArea) );
+		this.editionArea.cMenu.onPress(function(){ return app.TEXT["Italic"]}, this.editionArea.italic.bind(this.editionArea) );
+		
+		/** disable the context menu */
+		this.editionArea.cMenu.enable = false;
 
-		/** allows to put the Caret at the end of the text */
-		if (document.getSelection) {    // all browsers, except IE before version 9
-			var sel = document.getSelection ();
-			// sel is a string in Firefox and Opera,
-			// and a selectionRange object in Google Chrome, Safari and IE from version 9
+		/** the edit bar */
+		this.editBar = document.createElement("div");
+		this.editBar.style.top = "100%";
+		this.editBar.className = "card-editBar";
+		card.appendChild(this.editBar);
+
+		/** close Button */
+		this.btnClose = document.createElement("div");
+		this.btnClose.className = "card-btnClose";
+		this.editBar.appendChild(this.btnClose);
+
+		/** edit Button */
+		this.btnEdit = document.createElement("div");
+		this.btnEdit.className = "card-btnEdit";
+		this.editBar.appendChild(this.btnEdit);
+
+		if(typeof(text) != "undefined"){
+			this.setText(text);
 		}else{
-			if(document.selection) {   // Internet Explorer before version 9
-				var textRange = document.selection.createRange ();
-			}
-		}
-		//sel.collapse(this.cardText.firstChild, this.cardText.textContent.length);
-		
-		/** adds the "onkeydown" event */
-		util.addEvent(document, "keydown", this.REF_EVENT_onkeydown);
-	}else if(!bool && this.editable){
-		var isEmpty = /^\s*$/gi;
-		if(isEmpty.test(this.getText())){
-			this.cardText.blur();
-			this.remove();
-		}else{
-			this.editable = false;
-			this.setDraggable(true);
-			this.cardText.blur();
-			this.cardText.contentEditable = false;
-			this.cardText.style.cursor = "default";
-			this.cardText.innerHTML = this.textHtml;
-
-			/** removes the "onkeydown" event */
-			util.removeEvent(document, "keydown", this.REF_EVENT_onkeydown);
-		}
-	}
-}
-
-/**
- * @memberof Card#
- */
-Card.prototype.remove = function(){
-	/** removes the card from the static list */
-	if(Card.cardList.length > 0){
-		for(var element in Card.cardList){
-			if(Card.cardList[element] == this){
-				delete Card.cardList[element];
-		 	}
-		}
-	}
-
-	/** removes the context menu */
-	ContextMenu.remove(this)
-	
-	/** removes the "onmousedown" event */
-	util.removeEvent(document, "mousedown", this.REF_EVENT_onmousedown);
-
-	/** removes the current card */
-	this.parentNode.removeChild(this);
-}
-
-/**
- * @memberof Card#
- */
-Card.prototype.setText = function(newText){
-	this.text = newText;
-	this.textHtml = newText;
-	this.cardText.text = newText;
-	this.cardText.innerHTML = newText;
-}
-
-/**
- * @memberof Card#
- */
-Card.prototype.getText = function(){
-	/** Delete the style tags */
-	var childs = this.cardText.childNodes;
-
-	for(var i = 0; i < childs.length; i++){
-		if(childs[i].nodeType != 3){
-			childs[i].parentNode.removeChild(childs[i]);
-		}
-	}
-
-	var text = this.cardText.innerHTML;
-
-	return text;
-}
-
-/**
- * @memberof Card#
- * @event
- */
-Card.prototype.EVENT_onmousedown = function(event){
-	var target = event.target || event.srcElement;
-
-	if(!event.which && event.button){ // Firefox, Chrome, etc...
-		var button = event.button;
-	}else{ // MSIE
-		var button = event.which;
-	}
-
-	if(button == 1 && target != this.btnClose && target != this.btnEdit){
-		if(this.editable && target != this.cardText){
-			this.setDraggable(true);
-		}
-		
-		if(this.draggable && (target == this || util.hasParent(target, this))){
-			/** prevents the default behaviour */
-			event.returnValue = false;
-			if(event.preventDefault){
-				event.preventDefault();
-			}
-
-			this.dragged = true;
-			this.style.zIndex = 99;
-			this.hideEditBar(2);
-
-			/** calculates the mouse position in the object in order to set the object where the mouse catch it, recording the result in the "offset" variables. */ 
-			var mouseX = event.clientX + document.documentElement.scrollLeft + document.body.scrollLeft;
-			var mouseY = event.clientY + document.documentElement.scrollTop + document.body.scrollTop;
-
-			/** calculates the offsets offsets of the object */
-			var elementX = 0;
-			var elementY = 0;
-			var element = this;
-			do{
-				elementX += element.offsetLeft;
-				elementY += element.offsetTop;
-				element = element.offsetParent;
-			}while(element && util.getStyle(element, 'position') != 'absolute'  && util.getStyle(element, 'position') != 'fixed');
-
-			this.offsetX += mouseX - elementX;
-			this.offsetY += mouseY - elementY;
-
-			/** creates the drop area */
-			this.dropArea = document.createElement("div");
-			this.dropArea.style.height = util.getStyle(this, "height");
-			this.dropArea.style.width = util.getStyle(this, "width");
-			this.dropArea.className = "card-dropArea";
-			this.parentNode.insertBefore(this.dropArea, this);
-
-			/** turn the parent object in absolute position */
-			this.style.width = util.getStyle(this, "width");
-			var marginHeight = (this.offsetHeight - parseFloat(util.getStyle(this, "height")))/2
-			this.style.left = elementX + 'px';
-			this.style.top = elementY - marginHeight - 1 + 'px';
-			this.style.position = "absolute";
-			this.style.width = util.getStyle(this, "width");
-			this.className = "card-caught";
-
-			/** removes the card from the parentList */
-			this.parentList.removeCard(this); 
-
-			/** creates the masks Cards */
-			Card.createMask(); 
-			
-			/** creates the masks for the empty lists */
-			List.createMask(true); 
-			if(this.parentList.cardNumber() == 1){
-				/** creates a mask for the parentList if the current card is alone in it. */
-				List.createMask(this.parentList); 
-			}
-
-			/** removes the "onmousedown" event */
-			util.removeEvent(document, "mousedown", this.REF_EVENT_onmousedown);
-		}
-	}
-}
-
-/**
- * @memberof Card#
- * @event
- */
-Card.prototype.EVENT_onmousemove = function(event){
-	var target = event.target || event.srcElement;
-	if(this.dragged){
-		/** gets the mouse coordinates */
-		var x = event.clientX + (document.documentElement.scrollLeft + document.body.scrollLeft);
-		var y = event.clientY + (document.documentElement.scrollTop + document.body.scrollTop);
-
-		/** applies the different offsets */
-		x -= this.offsetX;
-		y -= this.offsetY;
-
-		this.className = "card-dragged";
-		this.style.left = x + 'px';
-		this.style.top = y + 'px';
-	}
-}
-
-/**
- * @memberof Card#
- * @event
- */
-Card.prototype.EVENT_onmouseup = function(event){
-	var target = event.target || event.srcElement;
-
-	if(!event.which && event.button){ // Firefox, Chrome, etc...
-		var button = event.button;
-	}else{ // MSIE
-		var button = event.which;
-	}
-
-	if(button == 1){
-		if(this.dragged){
-			/** prevent the default behaviour */
-			event.returnValue = false;
-			if(event.preventDefault){
-				event.preventDefault();
-			}
-
-			/** puts back the attributes to 0 */
-			this.dragged = false;
-			this.offsetX = 0;
-			this.offsetY = 0;
-
-			/** remove the masks */
-			Card.removeMask()
-			List.removeMask()
-
-			/** puts back in place */
-			this.removeAttribute("style");
-			this.className = "card";
-			this.dropArea.parentNode.replaceChild(this, this.dropArea);
-
-			/** handle the parentList property */
-			this.parentList.removeCard(this); // removes the card from the parentList
-			this.parentList = this.parentNode.parentNode; // changes the "parentList" attribute
-			this.parentList.addCard(this); // adds the card to the new parent list
-
-			this.dropArea = 'undefined';	// erases the "dropArea" attribute
-
-			/** adds the "onmousedown" event */
-			util.addEvent(document, "mousedown", this.REF_EVENT_onmousedown);
-		}else if(target == this.btnEdit){
-			this.setEditable(true);
-		}else if(target == this.btnClose){
-			this.remove();
-		}
-	}
-}
-
-/**
- * Flies over the other cards or lists. 
- * @memberof Card#
- * @event
- */
-Card.prototype.EVENT_onmouseover = function(event){
-	var target = event.target || event.srcElement;
-
-	if(this.dragged && target.className == "card-mask"){
-		var parentNode = target.hiddenCard.parentNode;
-
-		/** creates the empty lists's mask */
-		List.createMask(true); 
-
-		/** inserts the dragged card before the overflew card */
-		if(target.getAttribute("data-position") == "top"){
-			parentNode.insertBefore(this.dropArea, target.hiddenCard);
+			this.setText(app.TEXT["New card"]);
 		}
 
-		/** inserts the dragged card after the overflew card */
-		if(target.getAttribute("data-position") == "bottom"){
-			parentNode.insertBefore(this.dropArea, target.hiddenCard.nextSibling);
-		}
+		this.offsetX = 0;
+		this.offsetY = 0;
+		this.dropArea;
+		this.dragged = false;
+		this.draggable = false;
+		this.editable = false;
 
-		List.resizeMask();
-
-		/** sets the style of the mask */
-		Card.replaceMask();
-	}
-
-	/** overs an empty list */
-	if(this.dragged && target.className == "list-mask"){
-		target.hiddenList.cardArea.appendChild(this.dropArea);
-		List.resizeMask();
-		Card.replaceMask();
-	}
-
-	if(target == this || util.hasParent(target, this)){
-		this.showEditBar();
-	}else{
+		/** hides the edit bar */
+		this.anim;
+		this.editBarVisible = false;
+		this.editBarAnimated = false;
 		this.hideEditBar();
+
+		/** the card inherit from the current object */
+		util.inherit(card, this);
+
+		/** references on functions which handle animations. */
+		card.REF_EVENT_onmousedown = card.EVENT_onmousedown.bind(card);
+		card.REF_EVENT_onmousemove = card.EVENT_onmousemove.bind(card);
+		card.REF_EVENT_onmouseup = card.EVENT_onmouseup.bind(card);
+		card.REF_EVENT_onmouseover = card.EVENT_onmouseover.bind(card);
+		card.REF_EVENT_onkeydown = card.EVENT_onkeydown.bind(card);
+
+		/** events */
+		util.addEvent(document, "mousedown", card.REF_EVENT_onmousedown);
+		util.addEvent(document, "mouseover", card.REF_EVENT_onmouseover);
+		util.addEvent(document, "mouseup", card.REF_EVENT_onmouseup);
+		util.addEvent(document, "mousemove", card.REF_EVENT_onmousemove);
+
+		/** set the current card as editable */
+		card.setEditable(true);
+		
+		/** create the context menu */
+		card.cMenu = ContextMenu(card, [
+			function(){ return app.TEXT["Add a card"]}, 
+			function(){ return app.TEXT["Remove the card"]},
+			function(){ return app.TEXT["Remove the list"]}
+			]
+		)
+
+		/** adds the actions */
+		card.cMenu.onPress(function(){ return app.TEXT["Add a card"]}, function(){card.parentList.addCard()});
+		card.cMenu.onPress(function(){ return app.TEXT["Remove the card"]}, function(){card.remove()});
+		card.cMenu.onPress(function(){ return app.TEXT["Remove the list"]}, function(){card.parentList.remove()});
+		
+		/** return the created card */
+		return card;
 	}
-}
 
-/**
- * @memberof Card#
- * @event
- */
-Card.prototype.EVENT_onkeydown = function(event){
-	var target = event.target || event.srcElement;
-	var key;
-
-	if(app.BROWSER == "firefox"){
-		key = event.key;
-		if(key == "Backspace" || key == "Del"){
-			key = '';
+	/**
+	 * @memberof Card#
+	 */
+	Card.prototype.setDraggable = function(bool){
+		if(bool){
+			if(!this.draggable){
+				this.draggable = true;
+				this.setEditable(false);
+			}
+		}else{
+			if(this.draggable){
+				this.draggable = false;
+				this.setEditable(true);
+			}
 		}
-	}else{
-		key = util.fromKeycodeToHtml(event.keyCode);
 	}
 
-	if(event.keyCode != 16){ // "shift"
-		var content = this.cardText.innerHTML;
+	/**
+	 * @memberof Card#
+	 */
+	Card.prototype.setEditable = function(bool){
+		/** set editable */
+		if(bool && !this.editable){
+			this.editable = true;
+			this.setDraggable(false);
+			this.hideEditBar(12);
+			
+			this.editionArea.contentEditable = true;
+			this.editionArea.style.cursor = "text";
+			this.editionArea.focus();
+			
+			/** enable the context menu */
+			this.editionArea.cMenu.enable = true;
+
+			/** allows to put the Caret at the end of the text */
+			if (document.getSelection) {    // all browsers, except IE before version 9
+				var sel = document.getSelection ();
+				// sel is a string in Firefox and Opera,
+				// and a selectionRange object in Google Chrome, Safari and IE from version 9
+			}else{
+				if(document.selection) {   // Internet Explorer before version 9
+					var textRange = document.selection.createRange ();
+				}
+			}
+			//sel.collapse(this.editionArea.firstChild, this.editionArea.textContent.length);
+			
+			/** adds the "onkeydown" event */
+			util.addEvent(document, "keydown", this.REF_EVENT_onkeydown);
+			
+		/** set draggable */
+		}else if(!bool && this.editable){
+			var isEmpty = /^\s*$/gi;
+			if(isEmpty.test(this.getText())){
+				this.editionArea.blur();
+				this.remove();
+			}else{
+				this.editable = false;
+				recoverTextHTML(this); // A VIRER
+				
+				this.setDraggable(true);
+				this.editionArea.blur();
+				this.editionArea.contentEditable = false;
+				this.editionArea.style.cursor = "default";
+				this.editionArea.innerHTML = this.textHTML; // A VIRER
+				
+				/** disable the context menu */
+				this.editionArea.cMenu.enable = false;
+				
+				/** removes the "onkeydown" event */
+				util.removeEvent(document, "keydown", this.REF_EVENT_onkeydown);
+			}
+		}
+	}
+
+	/**
+	 * @memberof Card#
+	 */
+	Card.prototype.remove = function(){
+		/** removes the card from the static list */
+		if(Card.cardList.length > 0){
+			for(var element in Card.cardList){
+				if(Card.cardList[element] == this){
+					delete Card.cardList[element];
+				}
+			}
+		}
+
+		/** removes the context menu */
+		this.cMenu.remove();
+		
+		/** removes the "onmousedown" event */
+		util.removeEvent(document, "mousedown", this.REF_EVENT_onmousedown);
+
+		/** removes the current card */
+		this.parentNode.removeChild(this);
+	}
+
+	/**
+	 * @memberof Card#
+	 */
+	Card.prototype.setText = function(newText){
+		this.text = newText;
+		this.textHTML = newText;
+		this.editionArea.text = newText;
+		this.editionArea.innerHTML = newText;
+	}
+
+	/**
+	 * Allows to get the text.
+	 * @memberof Card#
+	 */
+	Card.prototype.getText = function(){
+		return this.editionArea.textContent;
+	}
+
+	/**
+	 * Allows to determine actions when the close button is pressed
+	 * @memberof Card#
+	 */
+	Card.prototype.onPressBtnClose = function(callback){
+		list_onPressBtnClose.push(callback);
+	}
+	
+	/**
+	 * Allows to determine actions when the edit button is pressed
+	 * @memberof Card#
+	 */
+	Card.prototype.onPressBtnEdit = function(callback){
+		list_onPressBtnEdit.push(callback);
+	}
+
+	/**
+	 * @memberof Card#
+	 * @event
+	 */
+	Card.prototype.EVENT_onmousedown = function(event){
+		var target = event.target || event.srcElement;
+
+		if(!event.which && event.button){ // Firefox, Chrome, etc...
+			var button = event.button;
+		}else{ // MSIE
+			var button = event.which;
+		}
+
+		if(button == 1 && target != this.btnClose && target != this.btnEdit){
+			if(this.editable && target != this.editionArea && !this.editionArea.cMenu.member(target)){
+				this.setDraggable(true);
+			}
+			
+			if(this.draggable && (target == this || util.hasParent(target, this))){
+				/** prevents the default behaviour */
+				event.returnValue = false;
+				if(event.preventDefault){
+					event.preventDefault();
+				}
+
+				this.dragged = true;
+				this.style.zIndex = 99;
+				this.hideEditBar(2);
+
+				/** calculates the mouse position in the object in order to set the object where the mouse catch it, recording the result in the "offset" variables. */ 
+				var mouseX = event.clientX + document.documentElement.scrollLeft + document.body.scrollLeft;
+				var mouseY = event.clientY + document.documentElement.scrollTop + document.body.scrollTop;
+
+				/** calculates the offsets of the object */
+				var elementX = 0;
+				var elementY = 0;
+				var element = this;
+				do{
+					elementX += element.offsetLeft;
+					elementY += element.offsetTop;
+					element = element.offsetParent;
+				}while(element && util.getStyle(element, 'position') != 'absolute'  && util.getStyle(element, 'position') != 'fixed');
+
+				this.offsetX += mouseX - elementX;
+				this.offsetY += mouseY - elementY;
+
+				/** creates the drop area */
+				this.dropArea = document.createElement("div");
+				this.dropArea.style.height = util.getStyle(this, "height");
+				this.dropArea.style.width = util.getStyle(this, "width");
+				this.dropArea.className = "card-dropArea";
+				this.parentNode.insertBefore(this.dropArea, this);
+
+				/** turn the parent object in absolute position */
+				this.style.width = util.getStyle(this, "width");
+				var marginHeight = (this.offsetHeight - parseFloat(util.getStyle(this, "height")))/2
+				this.style.left = elementX + 'px';
+				this.style.top = elementY - marginHeight - 1 + 'px';
+				this.style.position = "absolute";
+				this.style.width = util.getStyle(this, "width");
+				this.className = "card-caught";
+
+				/** removes the card from the parentList */
+				this.parentList.removeCard(this); 
+
+				/** creates the masks Cards */
+				Card.createMask(); 
+				
+				/** creates the masks for the empty lists */
+				List.createMask(true); 
+				if(this.parentList.cardNumber() == 1){
+					/** creates a mask for the parentList if the current card is alone in it. */
+					List.createMask(this.parentList); 
+				}
+
+				/** removes the "onmousedown" event */
+				util.removeEvent(document, "mousedown", this.REF_EVENT_onmousedown);
+			}
+		}
+	}
+
+	/**
+	 * @memberof Card#
+	 * @event
+	 */
+	Card.prototype.EVENT_onmousemove = function(event){
+		var target = event.target || event.srcElement;
+		if(this.dragged){
+			/** gets the mouse coordinates */
+			var x = event.clientX + (document.documentElement.scrollLeft + document.body.scrollLeft);
+			var y = event.clientY + (document.documentElement.scrollTop + document.body.scrollTop);
+
+			/** applies the different offsets */
+			x -= this.offsetX;
+			y -= this.offsetY;
+
+			this.className = "card-dragged";
+			this.style.left = x + 'px';
+			this.style.top = y + 'px';
+		}
+	}
+
+	/**
+	 * @memberof Card#
+	 * @event
+	 */
+	Card.prototype.EVENT_onmouseup = function(event){
+		var target = event.target || event.srcElement;
+
+		if(!event.which && event.button){ // Firefox, Chrome, etc...
+			var button = event.button;
+		}else{ // MSIE
+			var button = event.which;
+		}
+
+		if(button == 1){
+			if(this.dragged){
+				/** prevent the default behaviour */
+				event.returnValue = false;
+				if(event.preventDefault){
+					event.preventDefault();
+				}
+
+				/** puts back the attributes to 0 */
+				this.dragged = false;
+				this.offsetX = 0;
+				this.offsetY = 0;
+
+				/** remove the masks */
+				Card.removeMask()
+				List.removeMask()
+
+				/** puts back in place */
+				this.removeAttribute("style");
+				this.className = "card";
+				this.dropArea.parentNode.replaceChild(this, this.dropArea);
+
+				/** handle the parentList property */
+				this.parentList.removeCard(this); // removes the card from the parentList
+				this.parentList = this.parentNode.parentNode; // changes the "parentList" attribute
+				this.parentList.addCard(this); // adds the card to the new parent list
+
+				this.dropArea = 'undefined';	// erases the "dropArea" attribute
+
+				/** adds the "onmousedown" event */
+				util.addEvent(document, "mousedown", this.REF_EVENT_onmousedown);
+			}else if(target == this.btnEdit){
+				for(var i = 0; i < list_onPressBtnEdit.length; i++){
+					list_onPressBtnEdit[i]();
+				}
+			
+				this.setEditable(true);
+			}else if(target == this.btnClose){
+				for(var i = 0; i < list_onPressBtnClose.length; i++){
+					list_onPressBtnClose[i]();
+				}
+			
+				this.remove();
+			}
+		}
+	}
+
+	/**
+	 * Flies over the other cards or lists. 
+	 * @memberof Card#
+	 * @event
+	 */
+	Card.prototype.EVENT_onmouseover = function(event){
+		var target = event.target || event.srcElement;
+
+		if(this.dragged && target.className == "card-mask"){
+			var parentNode = target.hiddenCard.parentNode;
+
+			/** creates the empty lists's mask */
+			List.createMask(true); 
+
+			/** inserts the dragged card before the overflew card */
+			if(target.getAttribute("data-position") == "top"){
+				parentNode.insertBefore(this.dropArea, target.hiddenCard);
+			}
+
+			/** inserts the dragged card after the overflew card */
+			if(target.getAttribute("data-position") == "bottom"){
+				parentNode.insertBefore(this.dropArea, target.hiddenCard.nextSibling);
+			}
+
+			List.resizeMask();
+
+			/** sets the style of the mask */
+			Card.replaceMask();
+		}
+
+		/** overs an empty list */
+		if(this.dragged && target.className == "list-mask"){
+			target.hiddenList.cardArea.appendChild(this.dropArea);
+			List.resizeMask();
+			Card.replaceMask();
+		}
+
+		if(target == this || util.hasParent(target, this)){
+			this.showEditBar();
+		}else{
+			this.hideEditBar();
+		}
+	}
+
+	/**
+	 * @memberof Card#
+	 * @event
+	 */
+	Card.prototype.EVENT_onkeydown = function(event){
+		var target = event.target || event.srcElement;
+		var key;
+
+		if(app.BROWSER == "firefox"){
+			key = event.key;
+			if(key == "Backspace" || key == "Del"){
+				key = '';
+			}
+		}else{
+			key = util.fromKeycodeToHtml(event.keyCode);
+		}
+
+		if(event.keyCode != 16){ // "shift"
+			recoverTextHTML(this);
+			
+			this.editBar.style.top = "100%";
+		}
+	}
+	
+	// SANS DOUTE A VIRER
+	/**
+	 * Recovers the content from the edition area and puts it into the "textHTML" attribute. 
+	 * @function
+	 * @private
+	 */
+	function recoverTextHTML(card){
+		var content = card.editionArea.innerHTML;
+
+		card.textHTML = content;
+		/*
 		if(app.BROWSER == "firefox"){
 			if(content.substring(content.length - 4) == "<br>"){
-				/** removes the "<br>" automatically created at the end */
-				this.textHtml = content.substring(0, content.length - 4) + key; 
+				// removes the "<br>" automatically created at the end 
+				card.textHTML = content.substring(0, content.length - 4) + key; 
 			}else{
-				this.textHtml = content + key;
+				card.textHTML = content + key;
 			}
 		}else if(app.BROWSER == "chrome" || app.BROWSER == "opera"){
 			if(content.substring(content.length - 6) == "</div>"){
-				/** puts the last character in the last div created */
-				this.textHtml = content.substring(0, content.length - 6) + key + "</div>"; 
+				// puts the last character in the last div created 
+				card.textHTML = content.substring(0, content.length - 6) + key + "</div>"; 
 			}else{
-				this.textHtml = content + key;
+				card.textHTML = content + key;
 			}
 		}
-		this.editBar.style.top = "100%";
-	}
-}
-
-/**
- * @memberof Card#
- */
-Card.prototype.showEditBar = function(frameRate, firstIteration, secondIteration){
-	var anim = true;
-
-	var ref = this.showEditBar.bind(this);
-
-	if(typeof(firstIteration) == "undefined"){
-		var firstIteration = true;
+		*/
 	}
 
-	if(typeof(secondIteration) == "undefined"){
-		var secondIteration = false;
-	}
+	/**
+	 * @memberof Card#
+	 */
+	Card.prototype.showEditBar = function(frameRate, firstIteration, secondIteration){
+		var anim = true;
 
-	if(this.editBarAnimated  && !this.editBarVisible && firstIteration){
-		clearTimeout(this.anim);
-		this.editBarAnimated = false;
-		this.anim = 0;
-	}else if(this.editBarVisible && firstIteration){
-		anim = false;
-	}else if(this.editable || this.dragged){
-		this.hideEditBar();
-		anim = false;
-	}else if(!this.editBarAnimated && !this.editBarVisible){
-		this.editBarAnimated = true;
-		this.editBarVisible = true;
-		
-		/** waits before launch the animation */
-		this.anim = setTimeout(function(){ref(frameRate, false, true)}, 600) 
-		anim = false;
-	}
+		var ref = this.showEditBar.bind(this);
 
-	if(anim){
-		if(typeof(frameRate) == "undefined"){
-			var frameRate = 10;
+		if(typeof(firstIteration) == "undefined"){
+			var firstIteration = true;
 		}
 
-		var top = 0;
-
-		if(secondIteration && (app.BROWSER == "chrome" || app.BROWSER == "opera")){
-			top = parseFloat(this.offsetHeight); // Useful for Chrome and Opera
-		}else{
-			top = parseFloat(util.getStyle(this.editBar, "top")); // in pixels
+		if(typeof(secondIteration) == "undefined"){
+			var secondIteration = false;
 		}
 
-		var heightEditBar = parseFloat(util.getStyle(this.editBar, "height")); // finds it in pixels
-		var heightCard = parseFloat(this.offsetHeight);
-		var finalTop = heightCard - heightEditBar;
-
-		if(top - 1 > finalTop){
+		if(this.editBarAnimated  && !this.editBarVisible && firstIteration){
+			clearTimeout(this.anim);
+			this.editBarAnimated = false;
+			this.anim = 0;
+		}else if(this.editBarVisible && firstIteration){
+			anim = false;
+		}else if(this.editable || this.dragged){
+			this.hideEditBar();
+			anim = false;
+		}else if(!this.editBarAnimated && !this.editBarVisible){
 			this.editBarAnimated = true;
 			this.editBarVisible = true;
-			this.editBar.style.top = top - 1 + "px";
-			this.anim = setTimeout(function(){ref(frameRate, false, false)}, frameRate);
-		}else{
-			this.editBar.style.top = finalTop + "px";
+			
+			/** waits before launch the animation */
+			this.anim = setTimeout(function(){ref(frameRate, false, true)}, 600) 
+			anim = false;
+		}
+
+		if(anim){
+			if(typeof(frameRate) == "undefined"){
+				var frameRate = 10;
+			}
+
+			var top = 0;
+
+			if(secondIteration && (app.BROWSER == "chrome" || app.BROWSER == "opera")){
+				top = parseFloat(this.offsetHeight); // Useful for Chrome and Opera
+			}else{
+				top = parseFloat(util.getStyle(this.editBar, "top")); // in pixels
+			}
+
+			var heightEditBar = parseFloat(util.getStyle(this.editBar, "height")); // finds it in pixels
+			var heightCard = parseFloat(this.offsetHeight);
+			var finalTop = heightCard - heightEditBar;
+
+			if(top - 1 > finalTop){
+				this.editBarAnimated = true;
+				this.editBarVisible = true;
+				this.editBar.style.top = top - 1 + "px";
+				this.anim = setTimeout(function(){ref(frameRate, false, false)}, frameRate);
+			}else{
+				this.editBar.style.top = finalTop + "px";
+				this.editBarAnimated = false;
+				this.editBarVisible = true;
+			}
+		}
+	}
+
+	/**
+	 * Allows to animate the edit bar.
+	 * @function
+	 * @param {number} [frameRate] - The number of milliseconds between two state change.
+	 * @memberof Card#
+	 */
+	Card.prototype.hideEditBar = function(frameRate, firstIteration){
+		var anim = true;
+
+		if(typeof(firstIteration) == "undefined"){
+			var firstIteration = true;
+		}
+
+		if(this.editBarAnimated && this.editBarVisible && firstIteration){
+			clearTimeout(this.anim);
 			this.editBarAnimated = false;
-			this.editBarVisible = true;
-		}
-	}
-}
-
-/**
- * Allows to animate the edit bar.
- * @function
- * @param {number} [frameRate] - The number of milliseconds between two state change.
- * @memberof Card#
- */
-Card.prototype.hideEditBar = function(frameRate, firstIteration){
-	var anim = true;
-
-	if(typeof(firstIteration) == "undefined"){
-		var firstIteration = true;
-	}
-
-	if(this.editBarAnimated && this.editBarVisible && firstIteration){
-		clearTimeout(this.anim);
-		this.editBarAnimated = false;
-		this.anim = 0;
-	}else if(!this.editBarVisible && firstIteration){
-		anim = false;
-	}
-
-	if(anim){
-		/** @default */
-		if(typeof(frameRate) == "undefined"){
-			var frameRate = 10;
+			this.anim = 0;
+		}else if(!this.editBarVisible && firstIteration){
+			anim = false;
 		}
 
-		var top = parseFloat(util.getStyle(this.editBar, "top")); // in pixels
-		var finalTop = parseFloat(this.offsetHeight);
-		var ref = this.hideEditBar.bind(this);
+		if(anim){
+			/** @default */
+			if(typeof(frameRate) == "undefined"){
+				var frameRate = 10;
+			}
 
-		if(top + 1 < finalTop){
-			this.editBarAnimated = true;
-			this.editBarVisible = false;
-			this.editBar.style.top = top + 1 + "px";
-			this.anim = setTimeout(function(){ref(frameRate, false)}, frameRate);
-		}else{
-			this.editBar.style.top = finalTop + "px";
-			this.editBarAnimated = false;
-			this.editBarVisible = false;
+			var top = parseFloat(util.getStyle(this.editBar, "top")); // in pixels
+			var finalTop = parseFloat(this.offsetHeight);
+			var ref = this.hideEditBar.bind(this);
+
+			if(top + 1 < finalTop){
+				this.editBarAnimated = true;
+				this.editBarVisible = false;
+				this.editBar.style.top = top + 1 + "px";
+				this.anim = setTimeout(function(){ref(frameRate, false)}, frameRate);
+			}else{
+				this.editBar.style.top = finalTop + "px";
+				this.editBarAnimated = false;
+				this.editBarVisible = false;
+			}
 		}
 	}
-}
 
-/*****************************************\
-		STATICS ATTRIBUTES AND METHODS
-\*****************************************/
+	/*****************************************\
+			STATICS ATTRIBUTES AND METHODS
+	\*****************************************/
 
-/**
- * @memberof Card
- */
-Card.createMask = function(){
-	var card = document.getElementsByClassName("card");
-	for(var i = 0; i<card.length; i++){
-		/** the top mask */
-		var topMask = document.createElement("div");
-		topMask.style.left = card[i].offsetLeft + "px";
-		topMask.style.top = card[i].offsetTop + "px";
-		topMask.style.height = (card[i].offsetHeight/2) + "px";
-		topMask.style.width = card[i].offsetWidth + "px";
-		topMask.style.position = "absolute";
-		topMask.className = "card-mask";
-		topMask.setAttribute("data-position", "top");
-		topMask.hiddenCard = card[i];
+	/**
+	 * @memberof Card
+	 */
+	Card.createMask = function(){
+		var card = document.getElementsByClassName("card");
+		for(var i = 0; i<card.length; i++){
+			/** the top mask */
+			var topMask = document.createElement("div");
+			topMask.style.left = card[i].offsetLeft + "px";
+			topMask.style.top = card[i].offsetTop + "px";
+			topMask.style.height = (card[i].offsetHeight/2) + "px";
+			topMask.style.width = card[i].offsetWidth + "px";
+			topMask.style.position = "absolute";
+			topMask.className = "card-mask";
+			topMask.setAttribute("data-position", "top");
+			topMask.hiddenCard = card[i];
 
-		if(Card.showMask){
-			topMask.style.background = "rgba(30, 120, 255, 0.45)";
-		}
+			if(Card.showMask){
+				topMask.style.background = "rgba(30, 120, 255, 0.45)";
+			}
 
-		topMask.style.zIndex = 100;
-		document.getElementsByClassName("body")[0].appendChild(topMask);
+			topMask.style.zIndex = 100;
+			document.getElementsByClassName("body")[0].appendChild(topMask);
 
-		/** the bottom mask */
-		var botMask = document.createElement("div");
-		botMask.style.left = card[i].offsetLeft + "px";
-		botMask.style.top = card[i].offsetTop + (card[i].offsetHeight/2) + "px";
-		botMask.style.height = (card[i].offsetHeight/2) + "px";
-		botMask.style.width = card[i].offsetWidth + "px";
-		botMask.style.position = "absolute";
-		botMask.className = "card-mask";
-		botMask.setAttribute("data-position", "bottom");
-		botMask.hiddenCard = card[i];
+			/** the bottom mask */
+			var botMask = document.createElement("div");
+			botMask.style.left = card[i].offsetLeft + "px";
+			botMask.style.top = card[i].offsetTop + (card[i].offsetHeight/2) + "px";
+			botMask.style.height = (card[i].offsetHeight/2) + "px";
+			botMask.style.width = card[i].offsetWidth + "px";
+			botMask.style.position = "absolute";
+			botMask.className = "card-mask";
+			botMask.setAttribute("data-position", "bottom");
+			botMask.hiddenCard = card[i];
 
-		if(Card.showMask){
-			botMask.style.background = "rgba(120, 30, 255, 0.45)";
-		}
+			if(Card.showMask){
+				botMask.style.background = "rgba(120, 30, 255, 0.45)";
+			}
 
-		botMask.style.zIndex = 100;
-		document.getElementsByClassName("body")[0].appendChild(botMask);
-	}
-}
-
-/**
- * @memberof Card
- */
-Card.resizeMask = function(){
-	var allMask = document.getElementsByClassName("card-mask");
-	for(var i = 0; i<allMask.length; i++){
-		var list = allMask[i].hiddenList;
-		if(allMask[i].getAttribute("data-position") == "bottom"){
-			allMask[i].style.height = parseFloat(util.getStyle(list, "height"))/2 + "px";
-		}else{
-			allMask[i].style.height = util.getStyle(list, "height") + "px";
-		}
-		allMask[i].style.width = parseFloat(util.getStyle(list, "width")) + 4 + "px";
-	}
-}
-
-/**
- * @memberof Card
- */
-Card.replaceMask = function(){
-	var allMask = document.getElementsByClassName("card-mask");
-	for(var i = 0; i<allMask.length; i++){
-		allMask[i].style.left = allMask[i].hiddenCard.offsetLeft + "px";
-		if(allMask[i].getAttribute("data-position") == "bottom"){
-			allMask[i].style.top = allMask[i].hiddenCard.offsetTop + (allMask[i].hiddenCard.offsetHeight/2) + "px";
-		}else{
-			allMask[i].style.top = allMask[i].hiddenCard.offsetTop + "px";
+			botMask.style.zIndex = 100;
+			document.getElementsByClassName("body")[0].appendChild(botMask);
 		}
 	}
-}
 
-/**
- * @memberof Card
- */
-Card.removeMask = function(){
-	var allMask = document.getElementsByClassName("card-mask");
-	var numberMask = allMask.length
-	for(var i = 0; i<numberMask; i++){
-		allMask[0].parentNode.removeChild(allMask[0]);
+	/**
+	 * @memberof Card
+	 */
+	Card.resizeMask = function(){
+		var allMask = document.getElementsByClassName("card-mask");
+		for(var i = 0; i<allMask.length; i++){
+			var list = allMask[i].hiddenList;
+			if(allMask[i].getAttribute("data-position") == "bottom"){
+				allMask[i].style.height = parseFloat(util.getStyle(list, "height"))/2 + "px";
+			}else{
+				allMask[i].style.height = util.getStyle(list, "height") + "px";
+			}
+			allMask[i].style.width = parseFloat(util.getStyle(list, "width")) + 4 + "px";
+		}
 	}
-}
 
-/**
- * An array containing a reference to each card
- * @memberof Card
- */
-Card.cardList = new Array;
+	/**
+	 * @memberof Card
+	 */
+	Card.replaceMask = function(){
+		var allMask = document.getElementsByClassName("card-mask");
+		for(var i = 0; i<allMask.length; i++){
+			allMask[i].style.left = allMask[i].hiddenCard.offsetLeft + "px";
+			if(allMask[i].getAttribute("data-position") == "bottom"){
+				allMask[i].style.top = allMask[i].hiddenCard.offsetTop + (allMask[i].hiddenCard.offsetHeight/2) + "px";
+			}else{
+				allMask[i].style.top = allMask[i].hiddenCard.offsetTop + "px";
+			}
+		}
+	}
+
+	/**
+	 * @memberof Card
+	 */
+	Card.removeMask = function(){
+		var allMask = document.getElementsByClassName("card-mask");
+		var numberMask = allMask.length
+		for(var i = 0; i<numberMask; i++){
+			allMask[0].parentNode.removeChild(allMask[0]);
+		}
+	}
+
+	/**
+	 * An array containing a reference to each card
+	 * @memberof Card
+	 */
+	Card.cardList = new Array;
+
+})();
 ;/**
  * @file This is the main file of the application. It creates 
  * all the application.

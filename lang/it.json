@@ -8,5 +8,7 @@
 	"Remove the list"  : "Eliminare la lista",
 	"New card"         : "Nuova scheda",
 	"Undo"             : "Disfare",
-	"Redo"             : "Rifare"
+	"Redo"             : "Rifare",
+	"Bold"             : "Grassetto",
+	"Italic"           : "Corsivo"
 }

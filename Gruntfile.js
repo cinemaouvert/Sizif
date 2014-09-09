@@ -12,18 +12,21 @@ module.exports = function(grunt) {
 	grunt.loadNpmTasks('grunt-browser-sync'); // Allows to synchronize the browsers during the development 
 
 	/** On met la liste des fichiers à concaténer dans une variable. */
-	var prefix = "dev/js/";
+	var app = "dev/js/";
+	var module = "dev/js/module/";
+	
 	var jsSrc = [
-		prefix + 'util.js',
-		prefix + 'app.js',
-		prefix + 'key.js',
-		prefix + 'Shortcut.js',
-		prefix + 'Translate.js',
-		prefix + 'ContextMenu.js',
-		prefix + 'ListTitle.js',
-		prefix + 'List.js',
-		prefix + 'Card.js',
-		prefix + "main.js"
+		module + 'util.js',
+		module + 'app.js',
+		module + 'key.js',
+		module + 'Shortcut.js',
+		module + 'RichTextArea.js',
+		module + 'Translate.js',
+		module + 'ContextMenu.js',
+		app + 'ListTitle.js',
+		app + 'List.js',
+		app + 'Card.js',
+		app + "main.js"
 		],
 		jsDist = 'dist/js/built.js';
 

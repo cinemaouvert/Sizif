@@ -8,5 +8,7 @@
 	"Remove the list"  : "Eliminar la lista",
 	"New card"         : "Nueva tarjeta",
 	"Undo"             : "Deshacer",
-	"Redo"             : "Rehacer"
+	"Redo"             : "Rehacer",
+	"Bold"             : "Negrita",
+	"Italic"           : "Cursiva"
 }

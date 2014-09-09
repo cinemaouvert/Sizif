@@ -126,11 +126,16 @@ function List(title, textBtnFooter){
 	util.addEvent(document, "mouseup", list.REF_EVENT_onmouseup);
 
 	/** add the context menu */
-	ContextMenu.add(list, 
-		{label: function(){ return app.TEXT["Add a card"] }, action: list.addCard.bind(list)},
-		{label: function(){ return app.TEXT["Remove the list"] }, action: list.remove.bind(list)}
+	
+	list.cMenu = ContextMenu(list, [
+		function(){ return app.TEXT["Add a card"] },
+		function(){ return app.TEXT["Remove the list"] }
+		]
 	)
-
+	
+	list.cMenu.onPress(function(){ return app.TEXT["Add a card"] }, list.addCard.bind(list));
+	list.cMenu.onPress(function(){ return app.TEXT["Remove the list"] }, list.remove.bind(list));
+	
 	return list;
 }
 
@@ -178,7 +183,7 @@ List.prototype.addCard = function(cardOrBool, bool){
 
 	var index = this.cardList.length;
 	this.cardList[index] = card;
-	card.cardText.focus(); // A VIRER
+	card.editionArea.focus(); // A VIRER
 }
 
 /**
@@ -201,7 +206,7 @@ List.prototype.remove = function(){
 	this.parentNode.removeChild(this);
 	
 	/** removes the context menu */
-	ContextMenu.remove(this)
+	this.cMenu.remove();
 	
 	/** decrements the counter */
 	List.counter--;

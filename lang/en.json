@@ -8,5 +8,7 @@
 	"Remove the list"  : "Remove the list",
 	"New card"         : "New card",
 	"Undo"             : "Undo",
-	"Redo"             : "Redo"
+	"Redo"             : "Redo",
+	"Bold"             : "Bold",
+	"Italic"           : "Italic"
 }
