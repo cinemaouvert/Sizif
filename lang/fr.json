@@ -9,6 +9,12 @@
 	"New card"         : "Nouvelle carte",
 	"Undo"             : "Annuler",
 	"Redo"             : "Rétablir",
+	"Cut"              : "Couper",
+	"Copy"             : "Copier",
+	"Paste"            : "Coller",
+	"Left align"       : "Aligner à gauche",
+	"Center align"     : "Centrer",
+	"Right align"      : "Aligner à droite",
 	"Bold"             : "Gras",
 	"Italic"           : "Italique",
 	"Underline"        : "Souligner"

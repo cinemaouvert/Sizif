@@ -9,6 +9,12 @@
 	"New card"         : "New card",
 	"Undo"             : "Undo",
 	"Redo"             : "Redo",
+	"Cut"              : "Cut",
+	"Copy"             : "Copy",
+	"Paste"            : "Paste",
+	"Left align"       : "Left align",
+	"Center align"     : "Center align",
+	"Right align"      : "Right align",
 	"Bold"             : "Bold",
 	"Italic"           : "Italic",
 	"Underline"        : "Underline"

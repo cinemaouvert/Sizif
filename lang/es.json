@@ -9,6 +9,12 @@
 	"New card"         : "Nueva tarjeta",
 	"Undo"             : "Deshacer",
 	"Redo"             : "Rehacer",
+	"Cut"              : "Cortar",
+	"Copy"             : "Copiar",
+	"Paste"            : "Pegar",
+	"Left align"       : "Alinear a la izquierda",
+	"Center align"     : "Centro",
+	"Right align"      : "Alinear a la derecha",
 	"Bold"             : "Negrita",
 	"Italic"           : "Cursiva",
 	"Underline"        : "Subrayar"

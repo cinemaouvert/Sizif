@@ -48,6 +48,12 @@
 			[ /** the labels of the context menu */
 				function(){ return app.TEXT["Undo"]},
 				function(){ return app.TEXT["Redo"]},
+				function(){ return app.TEXT["Cut"]},
+				function(){ return app.TEXT["Copy"]},
+				function(){ return app.TEXT["Paste"]},
+				function(){ return app.TEXT["Left align"]},
+				function(){ return app.TEXT["Center align"]},
+				function(){ return app.TEXT["Right align"]},
 				function(){ return app.TEXT["Bold"]},
 				function(){ return app.TEXT["Italic"]},
 				function(){ return app.TEXT["Underline"]}
@@ -55,6 +61,12 @@
 			[ /** the actions of the context menu */
 				this.editionArea.undo.bind(this.editionArea),
 				this.editionArea.redo.bind(this.editionArea),
+				this.editionArea.cut.bind(this.editionArea),
+				this.editionArea.copy.bind(this.editionArea),
+				this.editionArea.paste.bind(this.editionArea),
+				this.editionArea.leftAlign.bind(this.editionArea),
+				this.editionArea.centerAlign.bind(this.editionArea),
+				this.editionArea.rightAlign.bind(this.editionArea),
 				this.editionArea.bold.bind(this.editionArea),
 				this.editionArea.italic.bind(this.editionArea),
 				this.editionArea.underline.bind(this.editionArea)

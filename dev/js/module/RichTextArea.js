@@ -96,7 +96,6 @@
 		RTA.quote = function(){formatDoc('formatblock', 'blockquote')};
 		RTA.addIndent = function(){formatDoc('outdent')};
 		RTA.deleteIndent = function(){formatDoc('indent')};
-		RTA.deleteIndent = function(){formatDoc('indent')};
 		RTA.hyperlink = function(link){
 			if(link && link != '' && link != 'http://'){
 				formatDoc('createlink',link)

@@ -9,6 +9,12 @@
 	"New card"         : "Nuova scheda",
 	"Undo"             : "Disfare",
 	"Redo"             : "Rifare",
+	"Cut"              : "Taglia",
+	"Copy"             : "Copia",
+	"Paste"            : "Incolla",
+	"Left align"       : "Allinea a sinistra",
+	"Center align"     : "Centro",
+	"Right align"      : "Allinea a destra",
 	"Bold"             : "Grassetto",
 	"Italic"           : "Corsivo",
 	"Underline"        : "Sottolineare"
