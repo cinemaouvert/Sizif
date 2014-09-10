@@ -279,7 +279,7 @@
 		}
 
 		if(button == 1 && target != this.btnClose && target != this.btnEdit){
-			if(this.editable && target != this.editionArea && !this.editionArea.cMenu.member(target)){
+			if(this.editable && target != this.editionArea && !this.editionArea.cMenu.isChildNode(target)){
 				this.setDraggable(true);
 			}
 			

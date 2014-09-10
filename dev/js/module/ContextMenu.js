@@ -8,15 +8,20 @@
  * @todo créer une zone de raccourci (d'une manière général créer sur chaque boutons d'avantage de zones.)
  * @todo gérer les cas ou l'utilisateur n'envoi aucun contenu
  * @todo gérer les cas ou l'utilisateur défini plusieurs menu contextuels pour une même cible.
- * @todo permettre une vrai suppression de la mémoire (pour l'instant on ne fait que la mettre en "undefined").
  * @author Yohann Vioujard
  */
 
 (function(){
-	/** the memory containing the informations about all the context menus */
+	/** 
+	 * the memory containing the informations about all the context menus 
+	 * @private
+	 */
 	var memory = [];
 	
-	/** the identifier of the current context menu in the memory */
+	/** 
+	 * the identifier of the current context menu in the memory 
+	 * @private
+	 */
 	var currentId; 
 
 	/**
@@ -45,7 +50,7 @@
 			remove(target);
 			
 			/** remove the user interface */
-			//ui = undefined;
+			ui = undefined;
 		};
 		
 		/** contains the DOM node of his context menu. */
@@ -55,7 +60,7 @@
 		 * test if the target is a node member of the context menu handle by the UI.
 		 * @function
 		 */
-		ui.member = function(DOMNode){
+		ui.isChildNode = function(DOMNode){
 			if(typeof(ui.node) != "undefined"){
 				if(DOMNode == ui.node || util.hasParent(DOMNode, ui.node)){
 					return true;
@@ -76,6 +81,7 @@
 			memory[id].onPress.push({label: label, action: callback})
 		};
 		
+		/** pushes the new context menu in the memory */ 
 		memory.push({target: target, content: content, onPress: [], ui: ui});
 		
 		/** 
@@ -92,25 +98,6 @@
 		
 		return ui;
     }
-
-	/**
-	 * Remove a context menu
-	 * @function remove
-	 * @private
-	 * @param {object} target - the target of the context menu
-	 * @memberof ContextMenu
-	 */
-	function remove(target){
-		if(typeof(target) == "undefined" || typeof(target) == "string"){
-			throw "The first argument in ContextMenu.remove must be an HTMLElement.";
-		}
-		
-		for(var i = 0; i< memory.length; i++){
-			if(memory[i].target == target){
-				memory[i] = "undefined";
-			}
-		}
-	}
    
     /**
      * Remove the context menu if it's visible.
@@ -125,18 +112,25 @@
 			ContextMenu.node = undefined;
 			
 			/** remove the node from the user interface. */
-			memory[currentId].ui.node = undefined;
+			if(typeof(memory[currentId]) != "undefined"){
+				memory[currentId].ui.node = undefined;
+			}
 		}
 	}
 
     /**
      * Return the html element of the button which contains the given text
      * @function ContextMenu.btn
-	 * @param {string} str - The text of the button that the user wants to retrieve. 
+	 * @param {string|function} str - The text of the button that the user wants to retrieve, it can be a function which return a string. 
      * @return {object} The html element containing the text send in parameter.
 	 * @memberof ContextMenu
      */
-    ContextMenu.btn = function(str){
+    ContextMenu.btn = function(strOrFn){
+		var str = strOrFn;
+		if(str instanceof Function){
+			str = str();
+		}
+	
 		if(ContextMenu.visible){
 			var childs = ContextMenu.node.childNodes;
 			for(var i = 0; i < childs.length; i++){
@@ -155,17 +149,39 @@
 	 */
 	ContextMenu.visible = false;
 	
-	/** the dom node targeted by the context menu module. */
+	/** 
+	 * the dom node targeted by the context menu module. 
+	 * @member {object} ContextMenu.target
+	 */
 	ContextMenu.target; 
 	
-	/** contains the dom node of the context menu when it's visible. */
+	/** 
+	 * contains the dom node of the context menu when it's visible. 
+	 * @member {object} ContextMenu.node
+	 */
 	ContextMenu.node; 
 
-	/** adds the events handler */
-	util.addEvent(document, "contextmenu", oncontextmenu);
-	util.addEvent(document, "mousedown", onmousedown);
-	util.addEvent(document, "mouseup", onmouseup);
+	// PRIVATE FUNCTION
 
+	/**
+	 * Remove a context menu
+	 * @function remove
+	 * @private
+	 * @param {object} target - the target of the context menu
+	 * @memberof ContextMenu
+	 */
+	function remove(target){
+		if(typeof(target) == "undefined" || typeof(target) == "string"){
+			throw "The first argument in ContextMenu.remove must be an HTMLElement.";
+		}
+		
+		for(var i = 0; i< memory.length; i++){
+			if(memory[i].target == target){
+				memory.splice(i, 1);
+			}
+		}
+	}
+	
 	/**
 	 * Manage the oncontextmenu event.
 	 * Makes appear the context menu.
@@ -330,4 +346,9 @@
 		
 		return result;
 	}
+	
+	/** adds the events handler */
+	util.addEvent(document, "contextmenu", oncontextmenu);
+	util.addEvent(document, "mousedown", onmousedown);
+	util.addEvent(document, "mouseup", onmouseup);
 })()
