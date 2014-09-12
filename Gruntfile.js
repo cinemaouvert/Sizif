@@ -25,6 +25,7 @@ module.exports = function(grunt) {
 		module + 'ContextMenu.js',
 		app + 'ListTitle.js',
 		app + 'List.js',
+		app + 'EditBar.js',
 		app + 'Card.js',
 		app + "main.js"
 		],

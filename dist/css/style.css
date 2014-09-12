@@ -213,36 +213,62 @@ input[type="text"]:focus {
   border-bottom: 1px solid white;
 }
 
+/***************************\
+		CARD EDIT BAR
+\***************************/
 .card-editBar {
   position: absolute;
   background: rgba(200, 200, 200, 0.2);
   left: 0px;
   height: 22px;
-  width: 100%;
+  width: 96%;
+  padding: 0% 2% 0% 2%;
 }
 
-.card-btnClose {
+.card-btn {
   height: 100%;
   width: 5.5%;
-  margin-right: 2%;
-  float: right;
-  background-image: url(../../img/btnClose.svg);
   background-repeat: no-repeat;
 }
-.card-btnClose:hover {
+
+.card-btnRemove {
+  float: right;
+  background-image: url(../../img/btnClose.svg);
+}
+.card-btnRemove:hover {
   background-image: url(../../img/btnCloseOver.svg);
 }
 
 .card-btnEdit {
-  height: 100%;
-  width: 5.5%;
-  margin-right: 2%;
   float: right;
   background-image: url(../../img/btnEdit.svg);
-  background-repeat: no-repeat;
 }
 .card-btnEdit:hover {
   background-image: url(../../img/btnEditOver.svg);
+}
+
+.card-btnBold {
+  float: left;
+  background-image: url(../../img/btnBold.svg);
+}
+.card-btnBold:hover {
+  background-image: url(../../img/btnBoldOver.svg);
+}
+
+.card-btnItalic {
+  float: left;
+  background-image: url(../../img/btnItalic.svg);
+}
+.card-btnItalic:hover {
+  background-image: url(../../img/btnItalicOver.svg);
+}
+
+.card-btnUnderline {
+  float: left;
+  background-image: url(../../img/btnUnderline.svg);
+}
+.card-btnUnderline:hover {
+  background-image: url(../../img/btnUnderlineOver.svg);
 }
 
 /***************************\
@@ -296,7 +322,7 @@ input[type="text"]:focus {
 /**************************\
 		MEDIA QUERIES
 \**************************/
-/* Height */
+/* HEIGHT */
 @media all and (max-height: 300px) {
   h2 {
     font-size: 11px;
@@ -319,7 +345,7 @@ input[type="text"]:focus {
   }
 
   .card, .card-dropArea, .card-caught, .card-dragged {
-    min-height: 20px;
+    min-height: 30px;
     font-size: 50%;
   }
 }
@@ -345,7 +371,7 @@ input[type="text"]:focus {
   }
 
   .card, .card-dropArea, .card-caught, .card-dragged {
-    min-height: 30px;
+    min-height: 40px;
     font-size: 60%;
   }
 }
@@ -371,7 +397,7 @@ input[type="text"]:focus {
   }
 
   .card, .card-dropArea, .card-caught, .card-dragged {
-    min-height: 40px;
+    min-height: 50px;
     font-size: 70%;
   }
 }
@@ -397,11 +423,11 @@ input[type="text"]:focus {
   }
 
   .card, .card-dropArea, .card-caught, .card-dragged {
-    min-height: 50px;
+    min-height: 60px;
     font-size: 83%;
   }
 }
-/* Width */
+/* WIDTH */
 @media all and (max-width: 600px) {
   h2 {
     font-size: 11px;

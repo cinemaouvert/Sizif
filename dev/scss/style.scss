@@ -227,21 +227,27 @@ $cardPadding : 6px;
 	border-bottom: 1px solid rgba(255, 255, 255, 1);
 }
 
+/***************************\
+		CARD EDIT BAR
+\***************************/
 .card-editBar{
 	position: absolute;
 	background: rgba(200, 200, 200, 0.2);
 	left: 0px;
 	height: 22px;
-	width: 100%;
+	width: 96%;
+	padding: 0% 2% 0% 2%;
 }
 
-.card-btnClose{
+.card-btn{
 	height: 100%;
 	width: 5.5%;
-	margin-right: 2%;
+	background-repeat: no-repeat;
+}
+
+.card-btnRemove{
 	float: right;
 	background-image: url(../../img/btnClose.svg);
-	background-repeat: no-repeat;
 	
 	&:hover{
 		background-image: url(../../img/btnCloseOver.svg);
@@ -249,15 +255,38 @@ $cardPadding : 6px;
 }
 
 .card-btnEdit{
-	height: 100%;
-	width: 5.5%;
-	margin-right: 2%;
 	float: right;
 	background-image: url(../../img/btnEdit.svg);
-	background-repeat: no-repeat;
 	
 	&:hover{
 		background-image: url(../../img/btnEditOver.svg);
+	}
+}
+
+.card-btnBold{
+	float: left;
+	background-image: url(../../img/btnBold.svg);
+	
+	&:hover{
+		background-image: url(../../img/btnBoldOver.svg);
+	}
+}
+
+.card-btnItalic{
+	float: left;
+	background-image: url(../../img/btnItalic.svg);
+	
+	&:hover{
+		background-image: url(../../img/btnItalicOver.svg);
+	}
+}
+
+.card-btnUnderline{
+	float: left;
+	background-image: url(../../img/btnUnderline.svg);
+	
+	&:hover{
+		background-image: url(../../img/btnUnderlineOver.svg);
 	}
 }
 
@@ -315,7 +344,7 @@ $cardPadding : 6px;
 /**************************\
 		MEDIA QUERIES
 \**************************/
-/* Height */
+/* HEIGHT */
 @media all and (max-height:300px) {
 	h2{
 		font-size: 11px;
@@ -334,7 +363,7 @@ $cardPadding : 6px;
 		line-height: 20px;
 	}
 	.card, .card-caught, .card-dragged{
-		min-height: 20px;
+		min-height: 30px;
 		font-size: 50%;
 	}
 }
@@ -356,7 +385,7 @@ $cardPadding : 6px;
 		line-height: 25px;
 	}
 	.card, .card-caught, .card-dragged{
-		min-height: 30px;
+		min-height: 40px;
 		font-size: 60%;
 	}
 }
@@ -379,7 +408,7 @@ $cardPadding : 6px;
 		line-height: 30px;
 	}
 	.card, .card-caught, .card-dragged{
-		min-height: 40px;
+		min-height: 50px;
 		font-size: 70%;
 	}
 }
@@ -402,12 +431,12 @@ $cardPadding : 6px;
 		line-height: 35px;
 	}
 	.card, .card-caught, .card-dragged{
-		min-height: 50px;
+		min-height: 60px;
 		font-size: 83%;
 	}
 }
 
-/* Width */
+/* WIDTH */
 @media all and (max-width:600px) {
 	h2{
 		font-size: 11px;

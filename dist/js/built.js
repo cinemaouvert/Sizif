@@ -2301,13 +2301,471 @@ List.counter = 0;
  * @memberof List
  */
 List.showMask = false;
+;/**
+ * Contains the EditBar class.
+ * @file
+ */
+
+(function(){
+	/** 
+	 * connector 
+	 * @private
+	 */
+	var list_onPressBtnRemove = [];
+	var list_onPressBtnEdit = [];
+
+	/** @private */
+	var locked = false;
+
+	/**
+	 * Provide the cards's edition bar
+	 * @constructor
+	 */
+	EditBar = function(){
+		var editBar = document.createElement("div");
+		editBar.style.top = "100%";
+		editBar.className = "card-editBar";
+		
+		/** used to animate the edit bar */
+		this.animId;
+		this.visible = false;
+		this.animated = false;
+		
+		/** the editBar inherit from the current object */
+		util.inherit(editBar, this);
+		
+		/** the buttons */
+		createButton("remove", editBar);
+		createButton("edition", editBar);
+		createButton("bold", editBar);
+		createButton("italic", editBar);
+		createButton("underline", editBar);
+		
+		/** puts the edit bar in standard mode */
+		editBar.standardMode();
+		
+		/** hides the edit bar */
+		editBar.hide();
+		
+		/** create the reference to the event functions */
+		editBar.REF_onMouseUp = editBar.onMouseUp.bind(editBar);
+
+		/** events */
+		util.addEvent(document, "mouseup", editBar.REF_onMouseUp);
+		
+		return editBar;
+	}
+	
+	/** return a reference on the node of the named button. */
+	EditBar.prototype.button = function(name){
+		var listBtn = privateAttribute("listBtn", this);
+		for(var i = 0; i < listBtn.length; i++){
+			if(listBtn[i].name = name){
+				return listBtn[i].node;
+			}
+		}
+	}
+	
+	/**
+	 * Allows to create button.
+	 * @private
+	 * @function
+	 */
+	function createButton(name, instance){
+		var listBtn = privateAttribute("listBtn", instance);
+		console.log(listBtn);
+		if(typeof(listBtn) == "undefined"){
+			listBtn = [];
+			
+			/** adds a new entry */
+			listBtn.push({name: name, node: null, onPress: []});
+		}else{
+			/** checks if the button already exist */
+			var id = -1;
+			for(var i = 0; i < listBtn.length; i++){
+				if(listBtn[i].name == name){
+					id = i;
+					break;
+				}
+			}
+			
+			/** overloads the existing button */
+			if(id != -1){
+				listBtn[id].node = null;
+				listBtn[id].onPress = [];
+				
+			/** adds a new entry */
+			}else{
+				listBtn.push({name: name, node: null, onPress: []});
+			}
+		}
+		
+		setPrivateAttribute("listBtn", listBtn, this);
+	}
+	
+	/**
+	 * Determine a node button
+	 * @private
+	 * @function
+	 */
+	function buttonNode(name, node, instance){
+		var listBtn = privateAttribute("listBtn", instance);
+		for(var i = 0; i < listBtn.length; i++){
+			if(listBtn[i].name == name){
+				listBtn[i].node = node;
+				break;
+			}
+		}
+	}
+	
+	/** prevent the edit bar to be active and animated */
+	EditBar.prototype.lock = function(){
+		locked = true;
+	}
+	
+	/** puts the edit bar in its normal state */
+	EditBar.prototype.unlock = function(){
+		locked = false;
+	}
+	
+	/**
+	 * Allows to determine actions when a button is pressed
+	 * @memberof EditBar#
+	 */
+	EditBar.prototype.onPressButton = function(name, callback){
+		var listBtn = privateAttribute("listBtn", this);
+		for(var i = 0; i < listBtn.length; i++){
+			if(listBtn[i].name = name){
+				listBtn[i].onPress.push(callback);
+				break;
+			}
+		}
+	}
+	
+	/**
+	 * Allows to put the edit bar into standard mode.
+	 * @memberof EditBar#
+	 */
+	EditBar.prototype.standardMode = function(erase){
+		/** erases the mode. */
+		if(typeof(erase) != "undefined" && erase){
+			var btnRemove = this.button("remove");
+			var btnEdit = this.button("edition");
+		
+			/** erases the standard mode. */
+			btnRemove.parentNode.removeChild(btnRemove);
+			btnEdit.parentNode.removeChild(btnEdit);
+			
+			/** puts the attributes to null */
+			createButton("remove", this);
+			createButton("edition", this);
+				
+		/** creates the mode. */
+		}else{
+			var mode = privateAttribute("mode", this);
+			if(typeof(mode) == "undefined" || (typeof(mode) != "undefined" && mode != "standard")){
+				/** erase the current mode */
+				if(typeof(mode) != "undefined" && mode == "edition"){
+					this.editionMode(true);
+				}
+			
+				/** close Button */
+				btnRemove = document.createElement("div");
+				btnRemove.className = "card-btn card-btnRemove";
+				btnRemove.title = "Remove";
+				this.appendChild(btnRemove);
+				buttonNode("remove", btnRemove, this);
+
+				/** edit Button */
+				btnEdit = document.createElement("div");
+				btnEdit.className = "card-btn card-btnEdit";
+				btnEdit.title = "Edition";
+				this.appendChild(btnEdit);
+				buttonNode("edition", btnEdit, this);
+				
+				/** set the mode */
+				setPrivateAttribute("mode", "standard", this);
+			}
+		}
+	}
+	
+	/**
+	 * Allows to put the edit bar into edition mode.
+	 * @memberof EditBar#
+	 */
+	EditBar.prototype.editionMode = function(erase){
+		/** erases the mode. */
+		if(typeof(erase) != "undefined" && erase){
+			var btnBold = this.button("bold");
+			var btnItalic = this.button("italic");
+			var btnUnderline = this.button("underline");
+			
+			btnBold.parentNode.removeChild(btnBold);
+			btnItalic.parentNode.removeChild(btnItalic);
+			btnUnderline.parentNode.removeChild(btnUnderline);
+			
+			/** puts the button to null */
+			createButton("bold", this);
+			createButton("italic", this);
+			createButton("underline", this);
+			
+		/** creates the mode. */
+		}else{
+			var mode = privateAttribute("mode", this);
+			if(typeof(mode) == "undefined" || (typeof(mode) != "undefined" && mode != "edition")){
+				/** erase the current mode */
+				if(typeof(mode) != "undefined" && mode == "standard"){
+					this.standardMode(true);
+				}
+			
+				/** bold Button */
+				btnBold = document.createElement("div");
+				btnBold.className = "card-btn card-btnBold";
+				btnBold.title = "Bold";
+				this.appendChild(btnBold);
+				buttonNode("bold", btnBold, this);
+				
+				/** italic Button */
+				btnItalic = document.createElement("div");
+				btnItalic.className = "card-btn card-btnItalic";
+				btnItalic.title = "Italic";
+				this.appendChild(btnItalic);
+				buttonNode("italic", btnItalic, this);
+				
+				/** underline Button */
+				btnUnderline = document.createElement("div");
+				btnUnderline.className = "card-btn card-btnUnderline";
+				btnUnderline.title = "Underline";
+				this.appendChild(btnUnderline);
+				buttonNode("underline", btnUnderline, this);
+			
+				/** set the mode */
+				setPrivateAttribute("mode", "edition", this);
+			}
+		}
+	}
+	
+	/**
+	 * @memberof EditBar#
+	 */
+	EditBar.prototype.show = function(frameRate, firstIteration){
+		var anim = true;
+
+		if(typeof(firstIteration) == "undefined"){
+			var firstIteration = true;
+		}
+
+		if(this.animated  && !this.visible && firstIteration){
+			clearTimeout(this.animId);
+			this.animated = false;
+			this.animId = 0;
+		}else if(this.visible && firstIteration){
+			anim = false;
+		}else if(locked){
+			this.hide();
+			anim = false;
+		}else if(!this.animated && !this.visible){
+			var ref = this.show.bind(this);
+			this.animated = true;
+			this.visible = true;
+			
+			/** waits before launch the animation */
+			this.animId = setTimeout(function(){ref(frameRate, false)}, 600) 
+			anim = false;
+		}
+
+		if(anim){
+			/** @default */
+			if(typeof(frameRate) == "undefined"){
+				var frameRate = 10;
+			}
+
+			var heightEditBar = parseFloat(util.getStyle(this, "height")); // finds it in pixels
+			var heightCard = parseFloat(this.parentNode.offsetHeight);
+			var finalTop = heightCard - heightEditBar;
+			var that = this;
+			animate(this, "up", frameRate, finalTop, function(){
+				that.animated = false;
+				that.visible = true;
+			});
+		}
+	}
+
+	/**
+	 * Allows to animate the edit bar.
+	 * @function
+	 * @param {number} [frameRate] - The number of milliseconds between two state change.
+	 * @memberof EditBar#
+	 */
+	EditBar.prototype.hide = function(frameRate, callback){
+		var anim = true;
+
+		if(this.animated && this.visible){
+			clearTimeout(this.animId);
+			this.animated = false;
+			this.animId = 0;
+		}else if(!this.visible){
+			anim = false;
+		}else if(locked){
+			this.show();
+			anim = false;
+		}
+
+		if(anim){
+			/** @default */
+			if(typeof(frameRate) == "undefined"){
+				var frameRate = 10;
+			}
+			
+			/** the height of its parent card */
+			var finalTop = parseFloat(this.parentNode.offsetHeight);
+			var that = this;
+			
+			this.animated = true;
+			this.visible = false;
+			animate(this, "down", frameRate, finalTop, function(){
+				that.animated = false;
+				that.visible = false;
+				
+				if(typeof(callback) != "undefined"){
+						callback();
+				}
+			});
+		}
+	}
+	
+	/**
+	 * Allows to handle buttons 
+	 * @event
+	 */
+	EditBar.prototype.onMouseUp = function(event){
+		var target = event.target || event.srcElement;
+
+		if(!event.which && event.button){ // Firefox, Chrome, etc...
+			var button = event.button;
+		}else{ // MSIE
+			var button = event.which;
+		}
+
+		if(button == 1){
+			var listBtn = privateAttribute("listBtn", this);
+			
+			for(var i = 0; i < listBtn.length; i++){
+				if(target == listBtn[i].node){
+					var onPress = listBtn[i].onPress;
+					for(var j = 0; j < onPress.length; j++){
+						onPress[j]();
+					}
+				}
+			}
+		}
+	}
+	
+	/**
+	 * allows to animate the edit bar
+	 * @private
+	 */
+	function animate(editBar, direction, frameRate, finalTop, callback, firstIteration){
+		/** @default */
+		if(typeof(callback) == "undefined"){
+			callback = function(){};
+		}
+	
+		/** determine the operation among the direction */
+		if(direction == "down"){
+			operation = "+";
+			comparison = "<";
+		}else{
+			operation = "-";
+			comparison = ">";
+		}
+	
+		/** @default */
+		if(typeof(frameRate) == "undefined"){
+			var frameRate = 10;
+		}
+		
+		/** first iteration */
+		if(typeof(firstIteration) == "undefined"){
+			var firstIteration = true;
+		}
+		
+		var top;
+		if(firstIteration){
+			top = parseFloat(util.getStyle(editBar, "top")); // in pixels
+		}else{
+			top = parseFloat(editBar.currentStyleTop);
+		}
+
+		if(eval("top " + operation + " 1 " + comparison + " finalTop")){
+			if(firstIteration){
+				firstIteration = false;
+			}
+		
+			/** records the current style top */
+			editBar.currentStyleTop = eval("top " + operation + " 1 + 'px'");
+			editBar.style.top = eval("top " + operation + " 1 + 'px'");
+			editBar.animId = setTimeout(function(){animate(editBar, direction, frameRate, finalTop, callback, firstIteration)}, frameRate);
+		}else{
+			editBar.style.top = finalTop + "px";
+			callback();
+		}
+	}
+	
+	// PRIVATE ATTRIBUTES
+	var privateAttr_list = []; 
+	var privateAttr_lastUsedId = -1;
+	
+	/** 
+	 * Allows to add a private variable to an instance.
+	 * @function
+	 */
+	function setPrivateAttribute(name, value, instance){
+		if(privateAttr_lastUsedId != -1 && privateAttr_list[privateAttr_lastUsedId].instance == instance){
+			privateAttr_list[privateAttr_lastUsedId][name] = value;
+			return;
+		}
+		alert("Il faut ameliorer et debugger setPrivateAttribute, EditBar.js, ligne 425");
+		for(var i = 0; i < privateAttr_list.length; i++){
+			if(privateAttr_list[i].instance == instance){
+				privateAttr_list[i][name] = value;
+				return;
+			}
+		}
+		
+		/** defines the new entry */
+		var newEntry = {};
+		newEntry["instance"] = instance;
+		newEntry[name] = value;
+		
+		privateAttr_list.push(newEntry); 
+	}
+	
+	/** 
+	 * Allows to get a private variable to an instance.
+	 * @function
+	 */
+	function privateAttribute(name, instance){
+		if(privateAttr_lastUsedId != -1 && privateAttr_list[privateAttr_lastUsedId].instance == instance){
+			return privateAttr_list[privateAttr_lastUsedId][name];
+		}
+		
+		for(var i = 0; i < privateAttr_list.length; i++){
+			if(privateAttr_list[i].instance == instance){
+				privateAttr_lastUsedId = i;
+				return privateAttr_list[i][name];
+			}
+		}
+		return undefined;
+	}
+})()
 ;/** @file This file contains the Card class. */
 
 (function(){
 
 	/** private attributes */
-	var list_onPressBtnClose = [];
-	var list_onPressBtnEdit = [];
+	var list_onRemoval = [];
+	var list_onPressEdition = [];
 
 	/**
 	 * Provides cards
@@ -2317,6 +2775,8 @@ List.showMask = false;
 	 * @returns {object} card - The DOM object representing the card.
 	 */
 	Card = function(parentList, text){
+		var that = this;
+	
 		if(typeof(parentList) == "undefined"){
 			throw "The card must have a parent list to be create.";
 		}
@@ -2380,27 +2840,15 @@ List.showMask = false;
 		this.editionArea.cMenu.enable = false;
 
 		/** the edit bar */
-		this.editBar = document.createElement("div");
-		this.editBar.style.top = "100%";
-		this.editBar.className = "card-editBar";
+		this.editBar = new EditBar();
 		card.appendChild(this.editBar);
-
-		/** close Button */
-		this.btnClose = document.createElement("div");
-		this.btnClose.className = "card-btnClose";
-		this.editBar.appendChild(this.btnClose);
-
-		/** edit Button */
-		this.btnEdit = document.createElement("div");
-		this.btnEdit.className = "card-btnEdit";
-		this.editBar.appendChild(this.btnEdit);
 
 		if(typeof(text) != "undefined"){
 			this.setText(text);
 		}else{
 			this.setText(app.TEXT["New card"]);
 		}
-
+		
 		this.offsetX = 0;
 		this.offsetY = 0;
 		this.dropArea;
@@ -2408,42 +2856,11 @@ List.showMask = false;
 		this.draggable = false;
 		this.editable = false;
 
-		/** hides the edit bar */
-		this.anim;
-		this.editBarVisible = false;
-		this.editBarAnimated = false;
-		this.hideEditBar();
-
 		/** the card inherit from the current object */
 		util.inherit(card, this);
 
-		/** references on functions which handle animations. */
-		card.REF_EVENT_onmousedown = card.EVENT_onmousedown.bind(card);
-		card.REF_EVENT_onmousemove = card.EVENT_onmousemove.bind(card);
-		card.REF_EVENT_onmouseup = card.EVENT_onmouseup.bind(card);
-		card.REF_EVENT_onmouseover = card.EVENT_onmouseover.bind(card);
-		card.REF_EVENT_onkeydown = card.EVENT_onkeydown.bind(card);
-
-		/** events */
-		util.addEvent(document, "mousedown", card.REF_EVENT_onmousedown);
-		util.addEvent(document, "mouseover", card.REF_EVENT_onmouseover);
-		util.addEvent(document, "mouseup", card.REF_EVENT_onmouseup);
-		util.addEvent(document, "mousemove", card.REF_EVENT_onmousemove);
-
-		/** set the current card as editable */
-		card.setEditable(true);
-		
-		/** create the context menu */
-		card.cMenu = ContextMenu(card, [
-				function(){ return app.TEXT["Add a card"]}, 
-				function(){ return app.TEXT["Remove the card"]},
-				function(){ return app.TEXT["Remove the list"]}
-			],[ /** adds actions */
-				function(){card.parentList.addCard()},
-				function(){card.remove()},
-				function(){card.parentList.remove()}
-			]
-		)
+		/** create the links between the card and several functionalities */
+		connection(card);
 		
 		/** return the created card */
 		return card;
@@ -2472,9 +2889,14 @@ List.showMask = false;
 	Card.prototype.setEditable = function(bool){
 		/** set editable */
 		if(bool && !this.editable){
+			for(var i = 0; i < list_onPressEdition.length; i++){
+				list_onPressEdition[i]();
+			}
+		
 			this.editable = true;
 			this.setDraggable(false);
-			this.hideEditBar(12);
+			this.editBar.editionMode();
+			this.editBar.lock();
 			
 			this.editionArea.contentEditable = true;
 			this.editionArea.style.cursor = "text";
@@ -2506,13 +2928,21 @@ List.showMask = false;
 				this.remove();
 			}else{
 				this.editable = false;
-				recoverTextHTML(this); // A VIRER
 				
 				this.setDraggable(true);
+				this.editBar.unlock();
+				if(this.editBar.visible){
+					var that = this;
+					this.editBar.hide(1, function(){
+						that.editBar.standardMode();
+					});
+				}else{
+					this.editBar.standardMode();
+				}
+				
 				this.editionArea.blur();
 				this.editionArea.contentEditable = false;
 				this.editionArea.style.cursor = "default";
-				this.editionArea.innerHTML = this.textHTML; // A VIRER
 				
 				/** disable the context menu */
 				this.editionArea.cMenu.enable = false;
@@ -2527,6 +2957,10 @@ List.showMask = false;
 	 * @memberof Card#
 	 */
 	Card.prototype.remove = function(){
+		for(var i = 0; i < list_onRemoval.length; i++){
+			list_onRemoval[i]();
+		}
+	
 		/** removes the card from the static list */
 		if(Card.cardList.length > 0){
 			for(var element in Card.cardList){
@@ -2568,16 +3002,16 @@ List.showMask = false;
 	 * Allows to determine actions when the close button is pressed
 	 * @memberof Card#
 	 */
-	Card.prototype.onPressBtnClose = function(callback){
-		list_onPressBtnClose.push(callback);
+	Card.prototype.onRemoval = function(callback){
+		list_onRemoval.push(callback);
 	}
 	
 	/**
 	 * Allows to determine actions when the edit button is pressed
 	 * @memberof Card#
 	 */
-	Card.prototype.onPressBtnEdit = function(callback){
-		list_onPressBtnEdit.push(callback);
+	Card.prototype.onPressEdition = function(callback){
+		list_onPressEdition.push(callback);
 	}
 
 	/**
@@ -2593,7 +3027,7 @@ List.showMask = false;
 			var button = event.which;
 		}
 
-		if(button == 1 && target != this.btnClose && target != this.btnEdit){
+		if(button == 1 && (target != this.editBar && !util.hasParent(target, this.editBar))){
 			if(this.editable && target != this.editionArea && !this.editionArea.cMenu.isChildNode(target)){
 				this.setDraggable(true);
 			}
@@ -2607,7 +3041,8 @@ List.showMask = false;
 
 				this.dragged = true;
 				this.style.zIndex = 99;
-				this.hideEditBar(2);
+				this.editBar.hide(2);
+				this.editBar.lock();
 
 				/** calculates the mouse position in the object in order to set the object where the mouse catch it, recording the result in the "offset" variables. */ 
 				var mouseX = event.clientX + document.documentElement.scrollLeft + document.body.scrollLeft;
@@ -2707,6 +3142,7 @@ List.showMask = false;
 				this.dragged = false;
 				this.offsetX = 0;
 				this.offsetY = 0;
+				this.editBar.unlock();
 
 				/** remove the masks */
 				Card.removeMask()
@@ -2726,18 +3162,6 @@ List.showMask = false;
 
 				/** adds the "onmousedown" event */
 				util.addEvent(document, "mousedown", this.REF_EVENT_onmousedown);
-			}else if(target == this.btnEdit){
-				for(var i = 0; i < list_onPressBtnEdit.length; i++){
-					list_onPressBtnEdit[i]();
-				}
-			
-				this.setEditable(true);
-			}else if(target == this.btnClose){
-				for(var i = 0; i < list_onPressBtnClose.length; i++){
-					list_onPressBtnClose[i]();
-				}
-			
-				this.remove();
 			}
 		}
 	}
@@ -2780,9 +3204,9 @@ List.showMask = false;
 		}
 
 		if(target == this || util.hasParent(target, this)){
-			this.showEditBar();
+			this.editBar.show();
 		}else{
-			this.hideEditBar();
+			this.editBar.hide();
 		}
 	}
 
@@ -2807,143 +3231,6 @@ List.showMask = false;
 			recoverTextHTML(this);
 			
 			this.editBar.style.top = "100%";
-		}
-	}
-	
-	// SANS DOUTE A VIRER
-	/**
-	 * Recovers the content from the edition area and puts it into the "textHTML" attribute. 
-	 * @function
-	 * @private
-	 */
-	function recoverTextHTML(card){
-		var content = card.editionArea.innerHTML;
-
-		card.textHTML = content;
-		/*
-		if(app.BROWSER == "firefox"){
-			if(content.substring(content.length - 4) == "<br>"){
-				// removes the "<br>" automatically created at the end 
-				card.textHTML = content.substring(0, content.length - 4) + key; 
-			}else{
-				card.textHTML = content + key;
-			}
-		}else if(app.BROWSER == "chrome" || app.BROWSER == "opera"){
-			if(content.substring(content.length - 6) == "</div>"){
-				// puts the last character in the last div created 
-				card.textHTML = content.substring(0, content.length - 6) + key + "</div>"; 
-			}else{
-				card.textHTML = content + key;
-			}
-		}
-		*/
-	}
-
-	/**
-	 * @memberof Card#
-	 */
-	Card.prototype.showEditBar = function(frameRate, firstIteration, secondIteration){
-		var anim = true;
-
-		var ref = this.showEditBar.bind(this);
-
-		if(typeof(firstIteration) == "undefined"){
-			var firstIteration = true;
-		}
-
-		if(typeof(secondIteration) == "undefined"){
-			var secondIteration = false;
-		}
-
-		if(this.editBarAnimated  && !this.editBarVisible && firstIteration){
-			clearTimeout(this.anim);
-			this.editBarAnimated = false;
-			this.anim = 0;
-		}else if(this.editBarVisible && firstIteration){
-			anim = false;
-		}else if(this.editable || this.dragged){
-			this.hideEditBar();
-			anim = false;
-		}else if(!this.editBarAnimated && !this.editBarVisible){
-			this.editBarAnimated = true;
-			this.editBarVisible = true;
-			
-			/** waits before launch the animation */
-			this.anim = setTimeout(function(){ref(frameRate, false, true)}, 600) 
-			anim = false;
-		}
-
-		if(anim){
-			if(typeof(frameRate) == "undefined"){
-				var frameRate = 10;
-			}
-
-			var top = 0;
-
-			if(secondIteration && (app.BROWSER == "chrome" || app.BROWSER == "opera")){
-				top = parseFloat(this.offsetHeight); // Useful for Chrome and Opera
-			}else{
-				top = parseFloat(util.getStyle(this.editBar, "top")); // in pixels
-			}
-
-			var heightEditBar = parseFloat(util.getStyle(this.editBar, "height")); // finds it in pixels
-			var heightCard = parseFloat(this.offsetHeight);
-			var finalTop = heightCard - heightEditBar;
-
-			if(top - 1 > finalTop){
-				this.editBarAnimated = true;
-				this.editBarVisible = true;
-				this.editBar.style.top = top - 1 + "px";
-				this.anim = setTimeout(function(){ref(frameRate, false, false)}, frameRate);
-			}else{
-				this.editBar.style.top = finalTop + "px";
-				this.editBarAnimated = false;
-				this.editBarVisible = true;
-			}
-		}
-	}
-
-	/**
-	 * Allows to animate the edit bar.
-	 * @function
-	 * @param {number} [frameRate] - The number of milliseconds between two state change.
-	 * @memberof Card#
-	 */
-	Card.prototype.hideEditBar = function(frameRate, firstIteration){
-		var anim = true;
-
-		if(typeof(firstIteration) == "undefined"){
-			var firstIteration = true;
-		}
-
-		if(this.editBarAnimated && this.editBarVisible && firstIteration){
-			clearTimeout(this.anim);
-			this.editBarAnimated = false;
-			this.anim = 0;
-		}else if(!this.editBarVisible && firstIteration){
-			anim = false;
-		}
-
-		if(anim){
-			/** @default */
-			if(typeof(frameRate) == "undefined"){
-				var frameRate = 10;
-			}
-
-			var top = parseFloat(util.getStyle(this.editBar, "top")); // in pixels
-			var finalTop = parseFloat(this.offsetHeight);
-			var ref = this.hideEditBar.bind(this);
-
-			if(top + 1 < finalTop){
-				this.editBarAnimated = true;
-				this.editBarVisible = false;
-				this.editBar.style.top = top + 1 + "px";
-				this.anim = setTimeout(function(){ref(frameRate, false)}, frameRate);
-			}else{
-				this.editBar.style.top = finalTop + "px";
-				this.editBarAnimated = false;
-				this.editBarVisible = false;
-			}
 		}
 	}
 
@@ -3043,6 +3330,54 @@ List.showMask = false;
 	 */
 	Card.cardList = new Array;
 
+	/*****************************************\
+			PRIVATE METHODS
+	\*****************************************/
+	
+	/**
+	 * Connect a card with several functionalities
+	 * Used by the constructor.
+	 * @function
+	 * @private
+	 */
+	function connection(card){
+		/** references on functions which handle animations. */
+		card.REF_EVENT_onmousedown = card.EVENT_onmousedown.bind(card);
+		card.REF_EVENT_onmousemove = card.EVENT_onmousemove.bind(card);
+		card.REF_EVENT_onmouseup = card.EVENT_onmouseup.bind(card);
+		card.REF_EVENT_onmouseover = card.EVENT_onmouseover.bind(card);
+		card.REF_EVENT_onkeydown = card.EVENT_onkeydown.bind(card);
+
+		/** events */
+		util.addEvent(document, "mousedown", card.REF_EVENT_onmousedown);
+		util.addEvent(document, "mouseover", card.REF_EVENT_onmouseover);
+		util.addEvent(document, "mouseup", card.REF_EVENT_onmouseup);
+		util.addEvent(document, "mousemove", card.REF_EVENT_onmousemove);
+
+		/** set the card as editable */
+		card.setEditable(true);
+		
+		/** create the context menu */
+		card.cMenu = ContextMenu(card, [
+				function(){ return app.TEXT["Add a card"]}, 
+				function(){ return app.TEXT["Remove the card"]},
+				function(){ return app.TEXT["Remove the list"]}
+			],[ /** adds actions */
+				function(){card.parentList.addCard()},
+				function(){card.remove()},
+				function(){card.parentList.remove()}
+			]
+		)
+		
+		/** connection to the edit bar buttons */
+		card.editBar.onPress("edition", function(){
+			card.setEditable(true);
+		});
+		card.editBar.onPress("remove", function(){
+			card.remove();
+		});
+	}
+	
 })();
 ;/**
  * @file This is the main file of the application. It creates 
