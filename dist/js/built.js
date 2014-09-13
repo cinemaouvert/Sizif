@@ -215,6 +215,34 @@ util.removeEvent = function(obj, event, fn, capture){
 	}
 }
 
+/** 
+ * Prevent the default behaviour of an event
+ */
+util.preventDefault = function(event){
+	event.returnValue = false;
+	if(event.preventDefault){
+		event.preventDefault();
+	}
+}
+
+/**
+ * Get the button of the mouse which trigger the event
+ */
+util.getMouseButton = function(event){
+	if(!event.which && event.button){ // Firefox, Chrome, etc...
+		return event.button;
+	}else{ // MSIE
+		return event.which;
+	}
+}
+
+/**
+ * Return the target of the event
+ */
+util.getTarget = function(event){
+	return event.target || event.srcElement;
+}
+ 
 /**
  * Test if a DOM node has for parent a supposed parent send to the 
  * function. It can also test if a DOM node has a parent with a specific
@@ -1528,13 +1556,8 @@ ListTitle.prototype.setInputEditable = function(bool){
  * @memberof ListTitle.prototype
  */
 ListTitle.prototype.EVENT_onmousedown = function(event){
-	var target = event.target || event.srcElement;
-
-	if(!event.which && event.button){ // Firefox, Chrome, etc...
-		var button = event.button;
-	}else{ // MSIE
-		var button = event.which;
-	}	
+	var target = util.getTarget(event);
+	var button = util.getMouseButton(event);	
 	
 	if(button == 1 && this.isInputEdited){
 		/** prevents the default behaviour */
@@ -1549,13 +1572,8 @@ ListTitle.prototype.EVENT_onmousedown = function(event){
 }
 
 ListTitle.prototype.EVENT_ondblclick = function(event){
-	var target = event.target || event.srcElement;
-	
-	if(!event.which && event.button){ // Firefox, Chrome, etc...
-		var button = event.button;
-	}else{ // MSIE
-		var button = event.which;
-	}
+	var target = util.getTarget(event);
+	var button = util.getMouseButton(event);
 
 	if(button == 1 && (target == this || util.hasParent(target, this))){
 		/** launch the edition using an input */
@@ -1966,15 +1984,10 @@ List.prototype.remove = function(){
  * @event
  */
 List.prototype.EVENT_onmousedown = function(event){
-	var target = event.target || event.srcElement;
+	var target = util.getTarget(event);
 
 	if(!this.listTitle.isInputEdited){
-
-		if(!event.which && event.button){ // Firefox, Chrome, etc...
-			var button = event.button;
-		}else{ // MSIE
-			var button = event.which;
-		}
+		var button = util.getMouseButton(event);
 
 		if(button == 1 && util.hasParent(target, this) && (target.className == "list-header" || target.parentNode.className == "list-header" || target.parentNode.parentNode.className == "list-header")){
 			var that = this;
@@ -2062,13 +2075,8 @@ List.prototype.EVENT_onmousemove = function(event){
  * @event
  */
 List.prototype.EVENT_onmouseup = function(event){
-	var target = event.target || event.srcElement;
-
-	if(!event.which && event.button){ // Firefox, Chrome, etc...
-		var button = event.button;
-	}else{ // MSIE
-		var button = event.which;
-	}
+	var target = util.getTarget(event);
+	var button = util.getMouseButton(event);
 
 	if(button == 1){
 		this.clicked = false;
@@ -2110,7 +2118,7 @@ List.prototype.EVENT_onmouseup = function(event){
  * @event
  */
 List.prototype.EVENT_onmouseover = function(event){
-	var maskTarget = event.target || event.srcElement;
+	var maskTarget = util.getTarget(event);
 
 	if(maskTarget.className == "list-mask"){
 
@@ -2349,9 +2357,11 @@ List.showMask = false;
 		
 		/** create the reference to the event functions */
 		editBar.REF_onMouseUp = editBar.onMouseUp.bind(editBar);
+		editBar.REF_onMouseDown = editBar.onMouseDown.bind(editBar);
 
 		/** events */
 		util.addEvent(document, "mouseup", editBar.REF_onMouseUp);
+		util.addEvent(document, "mousedown", editBar.REF_onMouseDown);
 		
 		return editBar;
 	}
@@ -2360,7 +2370,7 @@ List.showMask = false;
 	EditBar.prototype.button = function(name){
 		var listBtn = privateAttribute("listBtn", this);
 		for(var i = 0; i < listBtn.length; i++){
-			if(listBtn[i].name = name){
+			if(listBtn[i].name == name){
 				return listBtn[i].node;
 			}
 		}
@@ -2373,7 +2383,6 @@ List.showMask = false;
 	 */
 	function createButton(name, instance){
 		var listBtn = privateAttribute("listBtn", instance);
-		console.log(listBtn);
 		if(typeof(listBtn) == "undefined"){
 			listBtn = [];
 			
@@ -2400,7 +2409,7 @@ List.showMask = false;
 			}
 		}
 		
-		setPrivateAttribute("listBtn", listBtn, this);
+		setPrivateAttribute("listBtn", listBtn, instance);
 	}
 	
 	/**
@@ -2416,6 +2425,42 @@ List.showMask = false;
 				break;
 			}
 		}
+		setPrivateAttribute("listBtn", listBtn, this);
+	}
+	
+	/**
+	 * enable a button
+	 * @private
+	 * @function
+	 */
+	function enableButton(name, instance){
+		setStateButton(name, "enable", instance);
+	}
+	
+	/**
+	 * enable a button
+	 * @private
+	 * @function
+	 */
+	function disableButton(name, instance){
+		setStateButton(name, "disable", instance);
+	}
+	
+	/**
+	 * Set the state of a button.
+	 * Used by the functions enableButton and disableButton
+	 * @private
+	 * @function
+	 */
+	function setStateButton(name, state, instance){
+		var listBtn = privateAttribute("listBtn", instance);
+		for(var i = 0; i < listBtn.length; i++){
+			if(listBtn[i].name == name){
+				listBtn[i].state = state;
+				break;
+			}
+		}
+		setPrivateAttribute("listBtn", listBtn, this);
 	}
 	
 	/** prevent the edit bar to be active and animated */
@@ -2435,11 +2480,12 @@ List.showMask = false;
 	EditBar.prototype.onPressButton = function(name, callback){
 		var listBtn = privateAttribute("listBtn", this);
 		for(var i = 0; i < listBtn.length; i++){
-			if(listBtn[i].name = name){
+			if(listBtn[i].name == name){
 				listBtn[i].onPress.push(callback);
 				break;
 			}
 		}
+		setPrivateAttribute("listBtn", listBtn, this);
 	}
 	
 	/**
@@ -2451,14 +2497,14 @@ List.showMask = false;
 		if(typeof(erase) != "undefined" && erase){
 			var btnRemove = this.button("remove");
 			var btnEdit = this.button("edition");
-		
+			
 			/** erases the standard mode. */
 			btnRemove.parentNode.removeChild(btnRemove);
 			btnEdit.parentNode.removeChild(btnEdit);
 			
 			/** puts the attributes to null */
-			createButton("remove", this);
-			createButton("edition", this);
+			disableButton("remove", this);
+			disableButton("edition", this);
 				
 		/** creates the mode. */
 		}else{
@@ -2483,6 +2529,10 @@ List.showMask = false;
 				this.appendChild(btnEdit);
 				buttonNode("edition", btnEdit, this);
 				
+				// TEST
+				enableButton("remove", this);
+				enableButton("edition", this);
+				
 				/** set the mode */
 				setPrivateAttribute("mode", "standard", this);
 			}
@@ -2504,10 +2554,10 @@ List.showMask = false;
 			btnItalic.parentNode.removeChild(btnItalic);
 			btnUnderline.parentNode.removeChild(btnUnderline);
 			
-			/** puts the button to null */
-			createButton("bold", this);
-			createButton("italic", this);
-			createButton("underline", this);
+			/** disable the button */
+			disableButton("bold", this);
+			disableButton("italic", this);
+			disableButton("underline", this);
 			
 		/** creates the mode. */
 		}else{
@@ -2538,6 +2588,11 @@ List.showMask = false;
 				btnUnderline.title = "Underline";
 				this.appendChild(btnUnderline);
 				buttonNode("underline", btnUnderline, this);
+				
+				/** disable the button */
+				enableButton("bold", this);
+				enableButton("italic", this);
+				enableButton("underline", this);
 			
 				/** set the mode */
 				setPrivateAttribute("mode", "edition", this);
@@ -2639,23 +2694,38 @@ List.showMask = false;
 	 * @event
 	 */
 	EditBar.prototype.onMouseUp = function(event){
-		var target = event.target || event.srcElement;
-
-		if(!event.which && event.button){ // Firefox, Chrome, etc...
-			var button = event.button;
-		}else{ // MSIE
-			var button = event.which;
-		}
+		var target = util.getTarget(event);
+		var button = util.getMouseButton(event);
+		util.preventDefault(event);
 
 		if(button == 1){
 			var listBtn = privateAttribute("listBtn", this);
 			
 			for(var i = 0; i < listBtn.length; i++){
-				if(target == listBtn[i].node){
+				if(listBtn[i].state == "enable" && (target == listBtn[i].node || util.hasParent(target, listBtn[i].node))){
 					var onPress = listBtn[i].onPress;
 					for(var j = 0; j < onPress.length; j++){
 						onPress[j]();
 					}
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Allows to prevent the default behaviour if a button is pressed.
+	 * @event
+	 */
+	EditBar.prototype.onMouseDown = function(event){
+		var target = util.getTarget(event);
+		var button = util.getMouseButton(event);
+
+		if(button == 1){
+			var listBtn = privateAttribute("listBtn", this);
+			for(var i = 0; i < listBtn.length; i++){
+				if(target == listBtn[i].node || util.hasParent(target, listBtn[i].node)){
+					util.preventDefault(event);
+					return;
 				}
 			}
 		}
@@ -2722,21 +2792,22 @@ List.showMask = false;
 	 */
 	function setPrivateAttribute(name, value, instance){
 		if(privateAttr_lastUsedId != -1 && privateAttr_list[privateAttr_lastUsedId].instance == instance){
-			privateAttr_list[privateAttr_lastUsedId][name] = value;
+			privateAttr_list[privateAttr_lastUsedId].attributes[name] = value;
 			return;
 		}
-		alert("Il faut ameliorer et debugger setPrivateAttribute, EditBar.js, ligne 425");
+
 		for(var i = 0; i < privateAttr_list.length; i++){
 			if(privateAttr_list[i].instance == instance){
-				privateAttr_list[i][name] = value;
+				privateAttr_list[i].attributes[name] = value;
 				return;
 			}
 		}
 		
-		/** defines the new entry */
+		/** creates a new entry */
 		var newEntry = {};
 		newEntry["instance"] = instance;
-		newEntry[name] = value;
+		newEntry["attributes"] = [];
+		newEntry.attributes[name] = value;
 		
 		privateAttr_list.push(newEntry); 
 	}
@@ -2747,13 +2818,13 @@ List.showMask = false;
 	 */
 	function privateAttribute(name, instance){
 		if(privateAttr_lastUsedId != -1 && privateAttr_list[privateAttr_lastUsedId].instance == instance){
-			return privateAttr_list[privateAttr_lastUsedId][name];
+			return privateAttr_list[privateAttr_lastUsedId].attributes[name];
 		}
 		
 		for(var i = 0; i < privateAttr_list.length; i++){
 			if(privateAttr_list[i].instance == instance){
 				privateAttr_lastUsedId = i;
-				return privateAttr_list[i][name];
+				return privateAttr_list[i].attributes[name];
 			}
 		}
 		return undefined;
@@ -2775,8 +2846,6 @@ List.showMask = false;
 	 * @returns {object} card - The DOM object representing the card.
 	 */
 	Card = function(parentList, text){
-		var that = this;
-	
 		if(typeof(parentList) == "undefined"){
 			throw "The card must have a parent list to be create.";
 		}
@@ -2805,39 +2874,6 @@ List.showMask = false;
 		this.editionArea.className = "card-text";
 		this.editionArea.setAttribute("data-translatable", true);
 		card.appendChild(this.editionArea);
-		
-		/** the context menu of the edition area */
-		this.editionArea.cMenu = ContextMenu(this.editionArea, 
-			[ /** the labels of the context menu */
-				function(){ return app.TEXT["Undo"]},
-				function(){ return app.TEXT["Redo"]},
-				function(){ return app.TEXT["Cut"]},
-				function(){ return app.TEXT["Copy"]},
-				function(){ return app.TEXT["Paste"]},
-				function(){ return app.TEXT["Left align"]},
-				function(){ return app.TEXT["Center align"]},
-				function(){ return app.TEXT["Right align"]},
-				function(){ return app.TEXT["Bold"]},
-				function(){ return app.TEXT["Italic"]},
-				function(){ return app.TEXT["Underline"]}
-			],
-			[ /** the actions of the context menu */
-				this.editionArea.undo.bind(this.editionArea),
-				this.editionArea.redo.bind(this.editionArea),
-				this.editionArea.cut.bind(this.editionArea),
-				this.editionArea.copy.bind(this.editionArea),
-				this.editionArea.paste.bind(this.editionArea),
-				this.editionArea.leftAlign.bind(this.editionArea),
-				this.editionArea.centerAlign.bind(this.editionArea),
-				this.editionArea.rightAlign.bind(this.editionArea),
-				this.editionArea.bold.bind(this.editionArea),
-				this.editionArea.italic.bind(this.editionArea),
-				this.editionArea.underline.bind(this.editionArea)
-			]
-		)
-		
-		/** disable the context menu */
-		this.editionArea.cMenu.enable = false;
 
 		/** the edit bar */
 		this.editBar = new EditBar();
@@ -3019,19 +3055,16 @@ List.showMask = false;
 	 * @event
 	 */
 	Card.prototype.EVENT_onmousedown = function(event){
-		var target = event.target || event.srcElement;
+		var target = util.getTarget(event);
+		var button = util.getMouseButton(event);
 
-		if(!event.which && event.button){ // Firefox, Chrome, etc...
-			var button = event.button;
-		}else{ // MSIE
-			var button = event.which;
-		}
-
-		if(button == 1 && (target != this.editBar && !util.hasParent(target, this.editBar))){
+		if(button == 1 && target != this.editBar && !util.hasParent(target, this.editBar)){
+			/** makes the card draggable */
 			if(this.editable && target != this.editionArea && !this.editionArea.cMenu.isChildNode(target)){
 				this.setDraggable(true);
 			}
 			
+			/** drag */
 			if(this.draggable && (target == this || util.hasParent(target, this))){
 				/** prevents the default behaviour */
 				event.returnValue = false;
@@ -3101,7 +3134,7 @@ List.showMask = false;
 	 * @event
 	 */
 	Card.prototype.EVENT_onmousemove = function(event){
-		var target = event.target || event.srcElement;
+		var target = util.getTarget(event);
 		if(this.dragged){
 			/** gets the mouse coordinates */
 			var x = event.clientX + (document.documentElement.scrollLeft + document.body.scrollLeft);
@@ -3122,21 +3155,13 @@ List.showMask = false;
 	 * @event
 	 */
 	Card.prototype.EVENT_onmouseup = function(event){
-		var target = event.target || event.srcElement;
-
-		if(!event.which && event.button){ // Firefox, Chrome, etc...
-			var button = event.button;
-		}else{ // MSIE
-			var button = event.which;
-		}
+		var target = util.getTarget(event);
+		var button = util.getMouseButton(event);
 
 		if(button == 1){
 			if(this.dragged){
 				/** prevent the default behaviour */
-				event.returnValue = false;
-				if(event.preventDefault){
-					event.preventDefault();
-				}
+				util.preventDefault(event);
 
 				/** puts back the attributes to 0 */
 				this.dragged = false;
@@ -3172,7 +3197,7 @@ List.showMask = false;
 	 * @event
 	 */
 	Card.prototype.EVENT_onmouseover = function(event){
-		var target = event.target || event.srcElement;
+		var target = util.getTarget(event);
 
 		if(this.dragged && target.className == "card-mask"){
 			var parentNode = target.hiddenCard.parentNode;
@@ -3215,7 +3240,7 @@ List.showMask = false;
 	 * @event
 	 */
 	Card.prototype.EVENT_onkeydown = function(event){
-		var target = event.target || event.srcElement;
+		var target = util.getTarget(event);
 		var key;
 
 		if(app.BROWSER == "firefox"){
@@ -3353,11 +3378,8 @@ List.showMask = false;
 		util.addEvent(document, "mouseover", card.REF_EVENT_onmouseover);
 		util.addEvent(document, "mouseup", card.REF_EVENT_onmouseup);
 		util.addEvent(document, "mousemove", card.REF_EVENT_onmousemove);
-
-		/** set the card as editable */
-		card.setEditable(true);
 		
-		/** create the context menu */
+		/** creates the context menu of the card*/
 		card.cMenu = ContextMenu(card, [
 				function(){ return app.TEXT["Add a card"]}, 
 				function(){ return app.TEXT["Remove the card"]},
@@ -3369,13 +3391,58 @@ List.showMask = false;
 			]
 		)
 		
+		/** creates the context menu of the edition area */
+		card.editionArea.cMenu = ContextMenu(card.editionArea, 
+			[ /** the labels of the context menu */
+				function(){ return app.TEXT["Undo"]},
+				function(){ return app.TEXT["Redo"]},
+				function(){ return app.TEXT["Cut"]},
+				function(){ return app.TEXT["Copy"]},
+				function(){ return app.TEXT["Paste"]},
+				function(){ return app.TEXT["Left align"]},
+				function(){ return app.TEXT["Center align"]},
+				function(){ return app.TEXT["Right align"]},
+				function(){ return app.TEXT["Bold"]},
+				function(){ return app.TEXT["Italic"]},
+				function(){ return app.TEXT["Underline"]}
+			],
+			[ /** the actions of the context menu */
+				card.editionArea.undo.bind(card.editionArea),
+				card.editionArea.redo.bind(card.editionArea),
+				card.editionArea.cut.bind(card.editionArea),
+				card.editionArea.copy.bind(card.editionArea),
+				card.editionArea.paste.bind(card.editionArea),
+				card.editionArea.leftAlign.bind(card.editionArea),
+				card.editionArea.centerAlign.bind(card.editionArea),
+				card.editionArea.rightAlign.bind(card.editionArea),
+				card.editionArea.bold.bind(card.editionArea),
+				card.editionArea.italic.bind(card.editionArea),
+				card.editionArea.underline.bind(card.editionArea)
+			]
+		)
+		
+		/** disable the context menu */
+		card.editionArea.cMenu.enable = false;
+		
 		/** connection to the edit bar buttons */
-		card.editBar.onPress("edition", function(){
+		card.editBar.onPressButton("edition", function(){
 			card.setEditable(true);
 		});
-		card.editBar.onPress("remove", function(){
+		card.editBar.onPressButton("remove", function(){
 			card.remove();
 		});
+		card.editBar.onPressButton("bold", function(){
+			card.editionArea.bold();
+		});
+		card.editBar.onPressButton("italic", function(){
+			card.editionArea.italic();
+		});
+		card.editBar.onPressButton("underline", function(){
+			card.editionArea.underline();
+		});
+		
+		/** set the card as editable */
+		card.setEditable(true);
 	}
 	
 })();

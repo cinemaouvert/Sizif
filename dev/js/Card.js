@@ -14,8 +14,6 @@
 	 * @returns {object} card - The DOM object representing the card.
 	 */
 	Card = function(parentList, text){
-		var that = this;
-	
 		if(typeof(parentList) == "undefined"){
 			throw "The card must have a parent list to be create.";
 		}
@@ -44,39 +42,6 @@
 		this.editionArea.className = "card-text";
 		this.editionArea.setAttribute("data-translatable", true);
 		card.appendChild(this.editionArea);
-		
-		/** the context menu of the edition area */
-		this.editionArea.cMenu = ContextMenu(this.editionArea, 
-			[ /** the labels of the context menu */
-				function(){ return app.TEXT["Undo"]},
-				function(){ return app.TEXT["Redo"]},
-				function(){ return app.TEXT["Cut"]},
-				function(){ return app.TEXT["Copy"]},
-				function(){ return app.TEXT["Paste"]},
-				function(){ return app.TEXT["Left align"]},
-				function(){ return app.TEXT["Center align"]},
-				function(){ return app.TEXT["Right align"]},
-				function(){ return app.TEXT["Bold"]},
-				function(){ return app.TEXT["Italic"]},
-				function(){ return app.TEXT["Underline"]}
-			],
-			[ /** the actions of the context menu */
-				this.editionArea.undo.bind(this.editionArea),
-				this.editionArea.redo.bind(this.editionArea),
-				this.editionArea.cut.bind(this.editionArea),
-				this.editionArea.copy.bind(this.editionArea),
-				this.editionArea.paste.bind(this.editionArea),
-				this.editionArea.leftAlign.bind(this.editionArea),
-				this.editionArea.centerAlign.bind(this.editionArea),
-				this.editionArea.rightAlign.bind(this.editionArea),
-				this.editionArea.bold.bind(this.editionArea),
-				this.editionArea.italic.bind(this.editionArea),
-				this.editionArea.underline.bind(this.editionArea)
-			]
-		)
-		
-		/** disable the context menu */
-		this.editionArea.cMenu.enable = false;
 
 		/** the edit bar */
 		this.editBar = new EditBar();
@@ -258,19 +223,16 @@
 	 * @event
 	 */
 	Card.prototype.EVENT_onmousedown = function(event){
-		var target = event.target || event.srcElement;
+		var target = util.getTarget(event);
+		var button = util.getMouseButton(event);
 
-		if(!event.which && event.button){ // Firefox, Chrome, etc...
-			var button = event.button;
-		}else{ // MSIE
-			var button = event.which;
-		}
-
-		if(button == 1 && (target != this.editBar && !util.hasParent(target, this.editBar))){
+		if(button == 1 && target != this.editBar && !util.hasParent(target, this.editBar)){
+			/** makes the card draggable */
 			if(this.editable && target != this.editionArea && !this.editionArea.cMenu.isChildNode(target)){
 				this.setDraggable(true);
 			}
 			
+			/** drag */
 			if(this.draggable && (target == this || util.hasParent(target, this))){
 				/** prevents the default behaviour */
 				event.returnValue = false;
@@ -340,7 +302,7 @@
 	 * @event
 	 */
 	Card.prototype.EVENT_onmousemove = function(event){
-		var target = event.target || event.srcElement;
+		var target = util.getTarget(event);
 		if(this.dragged){
 			/** gets the mouse coordinates */
 			var x = event.clientX + (document.documentElement.scrollLeft + document.body.scrollLeft);
@@ -361,21 +323,13 @@
 	 * @event
 	 */
 	Card.prototype.EVENT_onmouseup = function(event){
-		var target = event.target || event.srcElement;
-
-		if(!event.which && event.button){ // Firefox, Chrome, etc...
-			var button = event.button;
-		}else{ // MSIE
-			var button = event.which;
-		}
+		var target = util.getTarget(event);
+		var button = util.getMouseButton(event);
 
 		if(button == 1){
 			if(this.dragged){
 				/** prevent the default behaviour */
-				event.returnValue = false;
-				if(event.preventDefault){
-					event.preventDefault();
-				}
+				util.preventDefault(event);
 
 				/** puts back the attributes to 0 */
 				this.dragged = false;
@@ -411,7 +365,7 @@
 	 * @event
 	 */
 	Card.prototype.EVENT_onmouseover = function(event){
-		var target = event.target || event.srcElement;
+		var target = util.getTarget(event);
 
 		if(this.dragged && target.className == "card-mask"){
 			var parentNode = target.hiddenCard.parentNode;
@@ -454,7 +408,7 @@
 	 * @event
 	 */
 	Card.prototype.EVENT_onkeydown = function(event){
-		var target = event.target || event.srcElement;
+		var target = util.getTarget(event);
 		var key;
 
 		if(app.BROWSER == "firefox"){
@@ -592,11 +546,8 @@
 		util.addEvent(document, "mouseover", card.REF_EVENT_onmouseover);
 		util.addEvent(document, "mouseup", card.REF_EVENT_onmouseup);
 		util.addEvent(document, "mousemove", card.REF_EVENT_onmousemove);
-
-		/** set the card as editable */
-		card.setEditable(true);
 		
-		/** create the context menu */
+		/** creates the context menu of the card*/
 		card.cMenu = ContextMenu(card, [
 				function(){ return app.TEXT["Add a card"]}, 
 				function(){ return app.TEXT["Remove the card"]},
@@ -608,13 +559,58 @@
 			]
 		)
 		
+		/** creates the context menu of the edition area */
+		card.editionArea.cMenu = ContextMenu(card.editionArea, 
+			[ /** the labels of the context menu */
+				function(){ return app.TEXT["Undo"]},
+				function(){ return app.TEXT["Redo"]},
+				function(){ return app.TEXT["Cut"]},
+				function(){ return app.TEXT["Copy"]},
+				function(){ return app.TEXT["Paste"]},
+				function(){ return app.TEXT["Left align"]},
+				function(){ return app.TEXT["Center align"]},
+				function(){ return app.TEXT["Right align"]},
+				function(){ return app.TEXT["Bold"]},
+				function(){ return app.TEXT["Italic"]},
+				function(){ return app.TEXT["Underline"]}
+			],
+			[ /** the actions of the context menu */
+				card.editionArea.undo.bind(card.editionArea),
+				card.editionArea.redo.bind(card.editionArea),
+				card.editionArea.cut.bind(card.editionArea),
+				card.editionArea.copy.bind(card.editionArea),
+				card.editionArea.paste.bind(card.editionArea),
+				card.editionArea.leftAlign.bind(card.editionArea),
+				card.editionArea.centerAlign.bind(card.editionArea),
+				card.editionArea.rightAlign.bind(card.editionArea),
+				card.editionArea.bold.bind(card.editionArea),
+				card.editionArea.italic.bind(card.editionArea),
+				card.editionArea.underline.bind(card.editionArea)
+			]
+		)
+		
+		/** disable the context menu */
+		card.editionArea.cMenu.enable = false;
+		
 		/** connection to the edit bar buttons */
-		card.editBar.onPress("edition", function(){
+		card.editBar.onPressButton("edition", function(){
 			card.setEditable(true);
 		});
-		card.editBar.onPress("remove", function(){
+		card.editBar.onPressButton("remove", function(){
 			card.remove();
 		});
+		card.editBar.onPressButton("bold", function(){
+			card.editionArea.bold();
+		});
+		card.editBar.onPressButton("italic", function(){
+			card.editionArea.italic();
+		});
+		card.editBar.onPressButton("underline", function(){
+			card.editionArea.underline();
+		});
+		
+		/** set the card as editable */
+		card.setEditable(true);
 	}
 	
 })();

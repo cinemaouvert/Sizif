@@ -215,6 +215,34 @@ util.removeEvent = function(obj, event, fn, capture){
 	}
 }
 
+/** 
+ * Prevent the default behaviour of an event
+ */
+util.preventDefault = function(event){
+	event.returnValue = false;
+	if(event.preventDefault){
+		event.preventDefault();
+	}
+}
+
+/**
+ * Get the button of the mouse which trigger the event
+ */
+util.getMouseButton = function(event){
+	if(!event.which && event.button){ // Firefox, Chrome, etc...
+		return event.button;
+	}else{ // MSIE
+		return event.which;
+	}
+}
+
+/**
+ * Return the target of the event
+ */
+util.getTarget = function(event){
+	return event.target || event.srcElement;
+}
+ 
 /**
  * Test if a DOM node has for parent a supposed parent send to the 
  * function. It can also test if a DOM node has a parent with a specific

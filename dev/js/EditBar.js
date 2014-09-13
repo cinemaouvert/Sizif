@@ -46,9 +46,11 @@
 		
 		/** create the reference to the event functions */
 		editBar.REF_onMouseUp = editBar.onMouseUp.bind(editBar);
+		editBar.REF_onMouseDown = editBar.onMouseDown.bind(editBar);
 
 		/** events */
 		util.addEvent(document, "mouseup", editBar.REF_onMouseUp);
+		util.addEvent(document, "mousedown", editBar.REF_onMouseDown);
 		
 		return editBar;
 	}
@@ -57,7 +59,7 @@
 	EditBar.prototype.button = function(name){
 		var listBtn = privateAttribute("listBtn", this);
 		for(var i = 0; i < listBtn.length; i++){
-			if(listBtn[i].name = name){
+			if(listBtn[i].name == name){
 				return listBtn[i].node;
 			}
 		}
@@ -70,7 +72,6 @@
 	 */
 	function createButton(name, instance){
 		var listBtn = privateAttribute("listBtn", instance);
-		console.log(listBtn);
 		if(typeof(listBtn) == "undefined"){
 			listBtn = [];
 			
@@ -97,7 +98,7 @@
 			}
 		}
 		
-		setPrivateAttribute("listBtn", listBtn, this);
+		setPrivateAttribute("listBtn", listBtn, instance);
 	}
 	
 	/**
@@ -113,6 +114,42 @@
 				break;
 			}
 		}
+		setPrivateAttribute("listBtn", listBtn, this);
+	}
+	
+	/**
+	 * enable a button
+	 * @private
+	 * @function
+	 */
+	function enableButton(name, instance){
+		setStateButton(name, "enable", instance);
+	}
+	
+	/**
+	 * enable a button
+	 * @private
+	 * @function
+	 */
+	function disableButton(name, instance){
+		setStateButton(name, "disable", instance);
+	}
+	
+	/**
+	 * Set the state of a button.
+	 * Used by the functions enableButton and disableButton
+	 * @private
+	 * @function
+	 */
+	function setStateButton(name, state, instance){
+		var listBtn = privateAttribute("listBtn", instance);
+		for(var i = 0; i < listBtn.length; i++){
+			if(listBtn[i].name == name){
+				listBtn[i].state = state;
+				break;
+			}
+		}
+		setPrivateAttribute("listBtn", listBtn, this);
 	}
 	
 	/** prevent the edit bar to be active and animated */
@@ -132,11 +169,12 @@
 	EditBar.prototype.onPressButton = function(name, callback){
 		var listBtn = privateAttribute("listBtn", this);
 		for(var i = 0; i < listBtn.length; i++){
-			if(listBtn[i].name = name){
+			if(listBtn[i].name == name){
 				listBtn[i].onPress.push(callback);
 				break;
 			}
 		}
+		setPrivateAttribute("listBtn", listBtn, this);
 	}
 	
 	/**
@@ -148,14 +186,14 @@
 		if(typeof(erase) != "undefined" && erase){
 			var btnRemove = this.button("remove");
 			var btnEdit = this.button("edition");
-		
+			
 			/** erases the standard mode. */
 			btnRemove.parentNode.removeChild(btnRemove);
 			btnEdit.parentNode.removeChild(btnEdit);
 			
 			/** puts the attributes to null */
-			createButton("remove", this);
-			createButton("edition", this);
+			disableButton("remove", this);
+			disableButton("edition", this);
 				
 		/** creates the mode. */
 		}else{
@@ -180,6 +218,10 @@
 				this.appendChild(btnEdit);
 				buttonNode("edition", btnEdit, this);
 				
+				// TEST
+				enableButton("remove", this);
+				enableButton("edition", this);
+				
 				/** set the mode */
 				setPrivateAttribute("mode", "standard", this);
 			}
@@ -201,10 +243,10 @@
 			btnItalic.parentNode.removeChild(btnItalic);
 			btnUnderline.parentNode.removeChild(btnUnderline);
 			
-			/** puts the button to null */
-			createButton("bold", this);
-			createButton("italic", this);
-			createButton("underline", this);
+			/** disable the button */
+			disableButton("bold", this);
+			disableButton("italic", this);
+			disableButton("underline", this);
 			
 		/** creates the mode. */
 		}else{
@@ -235,6 +277,11 @@
 				btnUnderline.title = "Underline";
 				this.appendChild(btnUnderline);
 				buttonNode("underline", btnUnderline, this);
+				
+				/** disable the button */
+				enableButton("bold", this);
+				enableButton("italic", this);
+				enableButton("underline", this);
 			
 				/** set the mode */
 				setPrivateAttribute("mode", "edition", this);
@@ -336,23 +383,38 @@
 	 * @event
 	 */
 	EditBar.prototype.onMouseUp = function(event){
-		var target = event.target || event.srcElement;
-
-		if(!event.which && event.button){ // Firefox, Chrome, etc...
-			var button = event.button;
-		}else{ // MSIE
-			var button = event.which;
-		}
+		var target = util.getTarget(event);
+		var button = util.getMouseButton(event);
+		util.preventDefault(event);
 
 		if(button == 1){
 			var listBtn = privateAttribute("listBtn", this);
 			
 			for(var i = 0; i < listBtn.length; i++){
-				if(target == listBtn[i].node){
+				if(listBtn[i].state == "enable" && (target == listBtn[i].node || util.hasParent(target, listBtn[i].node))){
 					var onPress = listBtn[i].onPress;
 					for(var j = 0; j < onPress.length; j++){
 						onPress[j]();
 					}
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Allows to prevent the default behaviour if a button is pressed.
+	 * @event
+	 */
+	EditBar.prototype.onMouseDown = function(event){
+		var target = util.getTarget(event);
+		var button = util.getMouseButton(event);
+
+		if(button == 1){
+			var listBtn = privateAttribute("listBtn", this);
+			for(var i = 0; i < listBtn.length; i++){
+				if(target == listBtn[i].node || util.hasParent(target, listBtn[i].node)){
+					util.preventDefault(event);
+					return;
 				}
 			}
 		}
@@ -419,21 +481,22 @@
 	 */
 	function setPrivateAttribute(name, value, instance){
 		if(privateAttr_lastUsedId != -1 && privateAttr_list[privateAttr_lastUsedId].instance == instance){
-			privateAttr_list[privateAttr_lastUsedId][name] = value;
+			privateAttr_list[privateAttr_lastUsedId].attributes[name] = value;
 			return;
 		}
-		alert("Il faut ameliorer et debugger setPrivateAttribute, EditBar.js, ligne 425");
+
 		for(var i = 0; i < privateAttr_list.length; i++){
 			if(privateAttr_list[i].instance == instance){
-				privateAttr_list[i][name] = value;
+				privateAttr_list[i].attributes[name] = value;
 				return;
 			}
 		}
 		
-		/** defines the new entry */
+		/** creates a new entry */
 		var newEntry = {};
 		newEntry["instance"] = instance;
-		newEntry[name] = value;
+		newEntry["attributes"] = [];
+		newEntry.attributes[name] = value;
 		
 		privateAttr_list.push(newEntry); 
 	}
@@ -444,13 +507,13 @@
 	 */
 	function privateAttribute(name, instance){
 		if(privateAttr_lastUsedId != -1 && privateAttr_list[privateAttr_lastUsedId].instance == instance){
-			return privateAttr_list[privateAttr_lastUsedId][name];
+			return privateAttr_list[privateAttr_lastUsedId].attributes[name];
 		}
 		
 		for(var i = 0; i < privateAttr_list.length; i++){
 			if(privateAttr_list[i].instance == instance){
 				privateAttr_lastUsedId = i;
-				return privateAttr_list[i][name];
+				return privateAttr_list[i].attributes[name];
 			}
 		}
 		return undefined;

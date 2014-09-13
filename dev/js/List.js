@@ -216,15 +216,10 @@ List.prototype.remove = function(){
  * @event
  */
 List.prototype.EVENT_onmousedown = function(event){
-	var target = event.target || event.srcElement;
+	var target = util.getTarget(event);
 
 	if(!this.listTitle.isInputEdited){
-
-		if(!event.which && event.button){ // Firefox, Chrome, etc...
-			var button = event.button;
-		}else{ // MSIE
-			var button = event.which;
-		}
+		var button = util.getMouseButton(event);
 
 		if(button == 1 && util.hasParent(target, this) && (target.className == "list-header" || target.parentNode.className == "list-header" || target.parentNode.parentNode.className == "list-header")){
 			var that = this;
@@ -312,13 +307,8 @@ List.prototype.EVENT_onmousemove = function(event){
  * @event
  */
 List.prototype.EVENT_onmouseup = function(event){
-	var target = event.target || event.srcElement;
-
-	if(!event.which && event.button){ // Firefox, Chrome, etc...
-		var button = event.button;
-	}else{ // MSIE
-		var button = event.which;
-	}
+	var target = util.getTarget(event);
+	var button = util.getMouseButton(event);
 
 	if(button == 1){
 		this.clicked = false;
@@ -360,7 +350,7 @@ List.prototype.EVENT_onmouseup = function(event){
  * @event
  */
 List.prototype.EVENT_onmouseover = function(event){
-	var maskTarget = event.target || event.srcElement;
+	var maskTarget = util.getTarget(event);
 
 	if(maskTarget.className == "list-mask"){
 

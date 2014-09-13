@@ -138,13 +138,8 @@ ListTitle.prototype.setInputEditable = function(bool){
  * @memberof ListTitle.prototype
  */
 ListTitle.prototype.EVENT_onmousedown = function(event){
-	var target = event.target || event.srcElement;
-
-	if(!event.which && event.button){ // Firefox, Chrome, etc...
-		var button = event.button;
-	}else{ // MSIE
-		var button = event.which;
-	}	
+	var target = util.getTarget(event);
+	var button = util.getMouseButton(event);	
 	
 	if(button == 1 && this.isInputEdited){
 		/** prevents the default behaviour */
@@ -159,13 +154,8 @@ ListTitle.prototype.EVENT_onmousedown = function(event){
 }
 
 ListTitle.prototype.EVENT_ondblclick = function(event){
-	var target = event.target || event.srcElement;
-	
-	if(!event.which && event.button){ // Firefox, Chrome, etc...
-		var button = event.button;
-	}else{ // MSIE
-		var button = event.which;
-	}
+	var target = util.getTarget(event);
+	var button = util.getMouseButton(event);
 
 	if(button == 1 && (target == this || util.hasParent(target, this))){
 		/** launch the edition using an input */
