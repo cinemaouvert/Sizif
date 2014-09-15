@@ -212,6 +212,7 @@ $heightEditBar : 22px;
 .card-text{
 	padding: 3px 0px 3px 0px;
 	margin-bottom: $heightEditBar;
+	font-family: Verdana, sans-serif;
 	
 	&:focus{
 		outline: 1px dotted rgba(0, 0, 0, 0.4);
@@ -245,6 +246,7 @@ $heightEditBar : 22px;
 	height: 100%;
 	width: 5.5%;
 	background-repeat: no-repeat;
+	cursor: default;
 }
 
 .card-btnRemove{
@@ -292,11 +294,29 @@ $heightEditBar : 22px;
 	}
 }
 
+.card-btnFontFamily{
+	float: left;
+	width: auto;
+	&:hover{
+	}
+}
+
+/*****************************\
+		FONT FAMILY MENU
+\*****************************/
+
+.fontFamilyMenu{
+	height: 5%;
+	width: 3.5%;
+	background: rgb(245, 245, 245);
+	border: 1px solid rgba(160, 160, 160, 0.9);
+}
+
 /***************************\
 		CONTEXT MENU
 \***************************/
 
-.ContextMenu{
+.contextMenu{
 	min-height: 5%;
 	min-width: 11%;
 	padding: 0.2% 0% 0.2% 0%;
@@ -305,7 +325,7 @@ $heightEditBar : 22px;
 	box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.3);
 }
 
-.ContextMenu-btn{
+.contextMenu-btn{
 	width: 100%;
 	font-size: 68%;
 	cursor: default;

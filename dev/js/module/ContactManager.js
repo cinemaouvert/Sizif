@@ -173,18 +173,29 @@
 		util.preventDefault(event);
 
 		if(button == 1){
-			var listBtn = _private.get("listBtn", this);
-			var locked = _private.get("locked", this);
+			var allListBtn = _private.getAllInstance("listBtn");
 			
-			if(!locked){
-				var allInstance = _private.getAllInstance("listBtn");
-				for(var i = 0; i < allInstance.length; i++){
-					var listBtn = allInstance[i].listBtn
+			for(var i = 0; i < allListBtn.length; i++){
+				/** checks if the instance is locked */
+				var allLocked = _private.getAllInstance("locked");
+				var locked = false;
+				for(var j = 0; j < allLocked.length; j++){
+					if(allLocked[j].instance == allListBtn[i].instance){
+						locked = allLocked[j].locked;
+						break;
+					}
+				}
+			
+				/** launches the recorded actions */
+				if(!locked){
+					var listBtn = allListBtn[i].listBtn
+					
 					for(var j = 0; j < listBtn.length; j++){
 						if(listBtn[j].state == "enable" && (target == listBtn[j].node || util.hasParent(target, listBtn[j].node))){
 							var onPress = listBtn[j].onPress;
 							for(var k = 0; k < onPress.length; k++){
-								onPress[k]();
+								/** launches the callback with the button node as argument */
+								onPress[k](listBtn[j].node);
 							}
 						}
 					}

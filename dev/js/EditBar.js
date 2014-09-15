@@ -34,10 +34,13 @@
 		/** the buttons */
 		editBar.contact.newButton("remove");
 		editBar.contact.newButton("edition");
-		editBar.contact.newButton("fontStyle");
+		editBar.contact.newButton("fontFamily");
 		editBar.contact.newButton("bold");
 		editBar.contact.newButton("italic");
 		editBar.contact.newButton("underline");
+		
+		/** creates the font family menu */
+		editBar.contact.onPressButton("fontFamily", createFontFamilyMenu);
 		
 		/** puts the edit bar in standard mode */
 		editBar.standardMode();
@@ -119,17 +122,20 @@
 	EditBar.prototype.editionMode = function(erase){
 		/** erases the mode. */
 		if(typeof(erase) != "undefined" && erase){
-			var btnFontStyle = this.contact.button("fontStyle");
+			/** get buttons */
+			var btnFontFamily = this.contact.button("fontFamily");
 			var btnBold = this.contact.button("bold");
 			var btnItalic = this.contact.button("italic");
 			var btnUnderline = this.contact.button("underline");
 			
+			/** remove nodes */
+			btnFontFamily.parentNode.removeChild(btnFontFamily);
 			btnBold.parentNode.removeChild(btnBold);
 			btnItalic.parentNode.removeChild(btnItalic);
 			btnUnderline.parentNode.removeChild(btnUnderline);
 			
-			/** disable the button */
-			this.contact.disableButton("fontStyle");
+			/** disable the buttons */
+			this.contact.disableButton("fontFamily");
 			this.contact.disableButton("bold");
 			this.contact.disableButton("italic");
 			this.contact.disableButton("underline");
@@ -143,12 +149,14 @@
 					this.standardMode(true);
 				}
 			
-				/** fontStyle */
-				var btnFontStyle = document.createElement("div");
-				btnFontStyle.className = "card-btn card-btnFontStyle";
-				btnFontStyle.title = "Font Style";
-				this.appendChild(btnFontStyle);
-				this.contact.setButtonNode("bold", btnFontStyle);
+				/** fontFamily */
+				var btnFontFamily = document.createElement("div");
+				btnFontFamily.className = "card-btn card-btnFontFamily";
+				btnFontFamily.title = "Font Style";
+				var fontName = document.createTextNode("Verdana");
+				btnFontFamily.appendChild(fontName);
+				this.appendChild(btnFontFamily);
+				this.contact.setButtonNode("fontFamily", btnFontFamily);
 			
 				/** bold Button */
 				var btnBold = document.createElement("div");
@@ -172,7 +180,7 @@
 				this.contact.setButtonNode("underline", btnUnderline, this);
 				
 				/** enable the button */
-				this.contact.enableButton("fontStyle");
+				this.contact.enableButton("fontFamily");
 				this.contact.enableButton("bold");
 				this.contact.enableButton("italic");
 				this.contact.enableButton("underline");
@@ -321,5 +329,31 @@
 			editBar.style.top = finalTop + "px";
 			callback();
 		}
+	}
+	
+	/**
+	 *
+	 * @function
+	 */
+	function createFontFamilyMenu(btnFontFamily){
+		var menu = document.createElement("div");
+		menu.className = "fontFamilyMenu";
+		menu.style.position = "absolute";
+		
+		/** calculate the font family button absolute position */
+		var elementX = 0;
+		var elementY = 0;
+		var element = btnFontFamily;
+		do{
+			elementX += element.offsetLeft;
+			elementY += element.offsetTop;
+			element = element.offsetParent;
+		}while(element);
+		
+		var leftPaddingEditBar = util.getStyle(btnFontFamily.parentNode, 'padding-left');
+
+		menu.style.top = elementY + parseFloat(util.getStyle(btnFontFamily, 'height')) + "px";
+		menu.style.left = elementX - parseFloat(leftPaddingEditBar) + "px";
+		document.body.appendChild(menu);
 	}
 })()

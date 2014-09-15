@@ -104,6 +104,7 @@
 		RTA.cut = function(){formatDoc('cut')};
 		RTA.copy = function(){formatDoc('copy')};
 		RTA.paste = function(){formatDoc('paste')};
+		RTA.font = function(fontName){formatDoc('fontname', fontName)};
 
 		if(typeof(input) == "string" || typeof(input) == "undefined"){
 			return RTA;

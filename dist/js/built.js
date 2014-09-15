@@ -519,7 +519,7 @@ util.inherit = function(destination, source){
 	Private.prototype.deleteInstance = function(instance){	
 		for(var i = 0; i < this.memory.length; i++){
 			if(this.memory[i].instance == instance){
-				this.memory.splice(i - 1, 1);
+				this.memory.splice(i, 1);
 			}
 		}
 	}
@@ -698,18 +698,29 @@ util.inherit = function(destination, source){
 		util.preventDefault(event);
 
 		if(button == 1){
-			var listBtn = _private.get("listBtn", this);
-			var locked = _private.get("locked", this);
+			var allListBtn = _private.getAllInstance("listBtn");
 			
-			if(!locked){
-				var allInstance = _private.getAllInstance("listBtn");
-				for(var i = 0; i < allInstance.length; i++){
-					var listBtn = allInstance[i].listBtn
+			for(var i = 0; i < allListBtn.length; i++){
+				/** checks if the instance is locked */
+				var allLocked = _private.getAllInstance("locked");
+				var locked = false;
+				for(var j = 0; j < allLocked.length; j++){
+					if(allLocked[j].instance == allListBtn[i].instance){
+						locked = allLocked[j].locked;
+						break;
+					}
+				}
+			
+				/** launches the recorded actions */
+				if(!locked){
+					var listBtn = allListBtn[i].listBtn
+					
 					for(var j = 0; j < listBtn.length; j++){
 						if(listBtn[j].state == "enable" && (target == listBtn[j].node || util.hasParent(target, listBtn[j].node))){
 							var onPress = listBtn[j].onPress;
 							for(var k = 0; k < onPress.length; k++){
-								onPress[k]();
+								/** launches the callback with the button node as argument */
+								onPress[k](listBtn[j].node);
 							}
 						}
 					}
@@ -1257,6 +1268,7 @@ key = {
 		RTA.cut = function(){formatDoc('cut')};
 		RTA.copy = function(){formatDoc('copy')};
 		RTA.paste = function(){formatDoc('paste')};
+		RTA.font = function(fontName){formatDoc('fontname', fontName)};
 
 		if(typeof(input) == "string" || typeof(input) == "undefined"){
 			return RTA;
@@ -1643,7 +1655,7 @@ function changeLang(newLang){
 		if(ContextMenu.visible){
 			var target = event.target || event.srcElement;
 
-			if(target.className == "ContextMenu-btn"){
+			if(target.className == "contextMenu-btn"){
 				/** uses the identifier of the current context menu to get the content. */
 				var content = memory[currentId].content;
 				
@@ -1690,7 +1702,7 @@ function changeLang(newLang){
 		ContextMenu.visible = true;
 
 		ContextMenu.node = document.createElement("div");
-		ContextMenu.node.className = "ContextMenu";
+		ContextMenu.node.className = "contextMenu";
 		ContextMenu.node.style.position = "fixed";
 		ContextMenu.node.style.left = mouseX + "px";
 		ContextMenu.node.style.top = mouseY + "px";
@@ -1703,7 +1715,7 @@ function changeLang(newLang){
 			}
 		
 			var newBtn = document.createElement("div");
-			newBtn.className = "ContextMenu-btn";
+			newBtn.className = "contextMenu-btn";
 			newBtn.setAttribute("data-translatable", true);
 			newBtn.innerHTML = label;
 			ContextMenu.node.appendChild(newBtn);
@@ -2676,10 +2688,13 @@ List.showMask = false;
 		/** the buttons */
 		editBar.contact.newButton("remove");
 		editBar.contact.newButton("edition");
-		editBar.contact.newButton("fontStyle");
+		editBar.contact.newButton("fontFamily");
 		editBar.contact.newButton("bold");
 		editBar.contact.newButton("italic");
 		editBar.contact.newButton("underline");
+		
+		/** creates the font family menu */
+		editBar.contact.onPressButton("fontFamily", createFontFamilyMenu);
 		
 		/** puts the edit bar in standard mode */
 		editBar.standardMode();
@@ -2761,17 +2776,20 @@ List.showMask = false;
 	EditBar.prototype.editionMode = function(erase){
 		/** erases the mode. */
 		if(typeof(erase) != "undefined" && erase){
-			var btnFontStyle = this.contact.button("fontStyle");
+			/** get buttons */
+			var btnFontFamily = this.contact.button("fontFamily");
 			var btnBold = this.contact.button("bold");
 			var btnItalic = this.contact.button("italic");
 			var btnUnderline = this.contact.button("underline");
 			
+			/** remove nodes */
+			btnFontFamily.parentNode.removeChild(btnFontFamily);
 			btnBold.parentNode.removeChild(btnBold);
 			btnItalic.parentNode.removeChild(btnItalic);
 			btnUnderline.parentNode.removeChild(btnUnderline);
 			
-			/** disable the button */
-			this.contact.disableButton("fontStyle");
+			/** disable the buttons */
+			this.contact.disableButton("fontFamily");
 			this.contact.disableButton("bold");
 			this.contact.disableButton("italic");
 			this.contact.disableButton("underline");
@@ -2785,12 +2803,14 @@ List.showMask = false;
 					this.standardMode(true);
 				}
 			
-				/** fontStyle */
-				var btnFontStyle = document.createElement("div");
-				btnFontStyle.className = "card-btn card-btnFontStyle";
-				btnFontStyle.title = "Font Style";
-				this.appendChild(btnFontStyle);
-				this.contact.setButtonNode("bold", btnFontStyle);
+				/** fontFamily */
+				var btnFontFamily = document.createElement("div");
+				btnFontFamily.className = "card-btn card-btnFontFamily";
+				btnFontFamily.title = "Font Style";
+				var fontName = document.createTextNode("Verdana");
+				btnFontFamily.appendChild(fontName);
+				this.appendChild(btnFontFamily);
+				this.contact.setButtonNode("fontFamily", btnFontFamily);
 			
 				/** bold Button */
 				var btnBold = document.createElement("div");
@@ -2814,7 +2834,7 @@ List.showMask = false;
 				this.contact.setButtonNode("underline", btnUnderline, this);
 				
 				/** enable the button */
-				this.contact.enableButton("fontStyle");
+				this.contact.enableButton("fontFamily");
 				this.contact.enableButton("bold");
 				this.contact.enableButton("italic");
 				this.contact.enableButton("underline");
@@ -2963,6 +2983,32 @@ List.showMask = false;
 			editBar.style.top = finalTop + "px";
 			callback();
 		}
+	}
+	
+	/**
+	 *
+	 * @function
+	 */
+	function createFontFamilyMenu(btnFontFamily){
+		var menu = document.createElement("div");
+		menu.className = "fontFamilyMenu";
+		menu.style.position = "absolute";
+		
+		/** calculate the font family button absolute position */
+		var elementX = 0;
+		var elementY = 0;
+		var element = btnFontFamily;
+		do{
+			elementX += element.offsetLeft;
+			elementY += element.offsetTop;
+			element = element.offsetParent;
+		}while(element);
+		
+		var leftPaddingEditBar = util.getStyle(btnFontFamily.parentNode, 'padding-left');
+
+		menu.style.top = elementY + parseFloat(util.getStyle(btnFontFamily, 'height')) + "px";
+		menu.style.left = elementX - parseFloat(leftPaddingEditBar) + "px";
+		document.body.appendChild(menu);
 	}
 })()
 ;/** @file This file contains the Card class. */

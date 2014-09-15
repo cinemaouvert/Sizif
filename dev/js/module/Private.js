@@ -103,7 +103,7 @@
 	Private.prototype.deleteInstance = function(instance){	
 		for(var i = 0; i < this.memory.length; i++){
 			if(this.memory[i].instance == instance){
-				this.memory.splice(i - 1, 1);
+				this.memory.splice(i, 1);
 			}
 		}
 	}

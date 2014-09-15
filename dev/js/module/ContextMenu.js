@@ -248,7 +248,7 @@
 		if(ContextMenu.visible){
 			var target = event.target || event.srcElement;
 
-			if(target.className == "ContextMenu-btn"){
+			if(target.className == "contextMenu-btn"){
 				/** uses the identifier of the current context menu to get the content. */
 				var content = memory[currentId].content;
 				
@@ -295,7 +295,7 @@
 		ContextMenu.visible = true;
 
 		ContextMenu.node = document.createElement("div");
-		ContextMenu.node.className = "ContextMenu";
+		ContextMenu.node.className = "contextMenu";
 		ContextMenu.node.style.position = "fixed";
 		ContextMenu.node.style.left = mouseX + "px";
 		ContextMenu.node.style.top = mouseY + "px";
@@ -308,7 +308,7 @@
 			}
 		
 			var newBtn = document.createElement("div");
-			newBtn.className = "ContextMenu-btn";
+			newBtn.className = "contextMenu-btn";
 			newBtn.setAttribute("data-translatable", true);
 			newBtn.innerHTML = label;
 			ContextMenu.node.appendChild(newBtn);
