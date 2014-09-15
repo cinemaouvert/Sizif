@@ -187,6 +187,7 @@ input[type="text"]{
 			CARD
 \***************************/
 $cardPadding : 6px;
+$heightEditBar : 22px;
 
 .card, .card-caught, .card-dragged{
 	background: rgb(240, 240, 240);
@@ -210,6 +211,7 @@ $cardPadding : 6px;
 
 .card-text{
 	padding: 3px 0px 3px 0px;
+	margin-bottom: $heightEditBar;
 	
 	&:focus{
 		outline: 1px dotted rgba(0, 0, 0, 0.4);
@@ -234,7 +236,7 @@ $cardPadding : 6px;
 	position: absolute;
 	background: rgba(200, 200, 200, 0.2);
 	left: 0px;
-	height: 22px;
+	height: $heightEditBar;
 	width: 96%;
 	padding: 0% 2% 0% 2%;
 }

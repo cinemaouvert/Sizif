@@ -17,6 +17,8 @@ module.exports = function(grunt) {
 	
 	var jsSrc = [
 		module + 'util.js',
+		module + 'Private.js',
+		module + 'ContactManager.js',
 		module + 'app.js',
 		module + 'key.js',
 		module + 'Shortcut.js',
@@ -87,7 +89,7 @@ module.exports = function(grunt) {
 				dest: jsDist
 			}
 		},
-		jsdoc: { /** Génère la documentation */
+		jsdoc: { /** generate the documentation. */
 			generate: {
 				src: jsSrc,
 				options: {
@@ -110,12 +112,13 @@ module.exports = function(grunt) {
         }
 	})
 
-	grunt.registerTask('default', ['browserSync', 'dev', 'watch']) // C'est la tache lancée par défaut en tapant juste "grunt" en ligne de commande.
+	/** to use browserSync, uncomment it. */
+	grunt.registerTask('default', [/*'browserSync',*/ 'dev', 'watch']) // default task
 	grunt.registerTask('dev', ['styles:dev', 'scripts:dev']) // C'est la tache lancer en tapant "grunt dev" en ligne de commande.
 	grunt.registerTask('dist', ['styles:dist', 'scripts:dist']) // C'est la t�che lancer en tapant "grunt dist" en ligne de commande.
 	grunt.registerTask('doc', ['jsdoc:generate'])
 
-	/** Des commandes et tâches plus spécifiques */
+	/** more specific commands an tasks. */
 	grunt.registerTask('scripts:dev', ['concat:compile'])
 	grunt.registerTask('scripts:dist', ['uglify:compile'])
 

@@ -3,8 +3,7 @@
 (function(){
 
 	/** private attributes */
-	var list_onRemoval = [];
-	var list_onPressEdition = [];
+	var _private = new Private;
 
 	/**
 	 * Provides cards
@@ -93,6 +92,7 @@
 	Card.prototype.setEditable = function(bool){
 		/** set editable */
 		if(bool && !this.editable){
+			var list_onPressEdition = _private.get("list_onPressEdition", this);
 			for(var i = 0; i < list_onPressEdition.length; i++){
 				list_onPressEdition[i]();
 			}
@@ -100,7 +100,7 @@
 			this.editable = true;
 			this.setDraggable(false);
 			this.editBar.editionMode();
-			this.editBar.lock();
+			this.editBar.locked = true;
 			
 			this.editionArea.contentEditable = true;
 			this.editionArea.style.cursor = "text";
@@ -134,7 +134,7 @@
 				this.editable = false;
 				
 				this.setDraggable(true);
-				this.editBar.unlock();
+				this.editBar.locked = false;
 				if(this.editBar.visible){
 					var that = this;
 					this.editBar.hide(1, function(){
@@ -161,6 +161,7 @@
 	 * @memberof Card#
 	 */
 	Card.prototype.remove = function(){
+		var list_onRemoval = _private.get("list_onRemoval", this);
 		for(var i = 0; i < list_onRemoval.length; i++){
 			list_onRemoval[i]();
 		}
@@ -207,6 +208,7 @@
 	 * @memberof Card#
 	 */
 	Card.prototype.onRemoval = function(callback){
+		var list_onRemoval = _private.get("list_onRemoval", this);
 		list_onRemoval.push(callback);
 	}
 	
@@ -215,6 +217,7 @@
 	 * @memberof Card#
 	 */
 	Card.prototype.onPressEdition = function(callback){
+		var list_onPressEdition = _private.get("list_onRemoval", this);
 		list_onPressEdition.push(callback);
 	}
 
@@ -243,7 +246,7 @@
 				this.dragged = true;
 				this.style.zIndex = 99;
 				this.editBar.hide(2);
-				this.editBar.lock();
+				this.editBar.locked = true;
 
 				/** calculates the mouse position in the object in order to set the object where the mouse catch it, recording the result in the "offset" variables. */ 
 				var mouseX = event.clientX + document.documentElement.scrollLeft + document.body.scrollLeft;
@@ -335,7 +338,7 @@
 				this.dragged = false;
 				this.offsetX = 0;
 				this.offsetY = 0;
-				this.editBar.unlock();
+				this.editBar.locked = false;
 
 				/** remove the masks */
 				Card.removeMask()
@@ -419,11 +422,10 @@
 		}else{
 			key = util.fromKeycodeToHtml(event.keyCode);
 		}
-
+		
 		if(event.keyCode != 16){ // "shift"
-			recoverTextHTML(this);
-			
-			this.editBar.style.top = "100%";
+			var heightEditBar = util.getStyle(this.editBar, "height");
+			this.editBar.style.top = "calc(100% - " + heightEditBar + ")";
 		}
 	}
 
@@ -534,6 +536,10 @@
 	 * @private
 	 */
 	function connection(card){
+		/** creates privates variables */
+		_private.set("list_onRemoval", [], card);
+		_private.set("list_onPressEdition", [], card);
+	
 		/** references on functions which handle animations. */
 		card.REF_EVENT_onmousedown = card.EVENT_onmousedown.bind(card);
 		card.REF_EVENT_onmousemove = card.EVENT_onmousemove.bind(card);
@@ -612,5 +618,4 @@
 		/** set the card as editable */
 		card.setEditable(true);
 	}
-	
 })();

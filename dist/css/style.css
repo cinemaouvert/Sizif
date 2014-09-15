@@ -198,6 +198,7 @@ input[type="text"]:focus {
 
 .card-text {
   padding: 3px 0px 3px 0px;
+  margin-bottom: 22px;
 }
 .card-text:focus {
   outline: 1px dotted rgba(0, 0, 0, 0.4);

@@ -415,6 +415,337 @@ util.inherit = function(destination, source){
 	}
 }
 ;/**
+ * This module provide a private attribute handler.
+ * It allows a user to used private attribute
+ * with a class.
+ * To work it must be himself a private attribute of the class.
+ * @exemple
+ * 		(function(){
+ * 			var _private = new Private; // it's private himself
+ *
+ *			function myClass(){
+ *				_private.set("privateFunc", function(){ return "something" }, this)
+ *			}
+ *
+ *			// return "something"
+ *			myClass.prototype.getSomething = function(){
+ *				var privateFunc = _private.get("privateFunc", this);
+ *				return privateFunc();
+ *			}
+ *
+ *		})();
+ */
+
+(function(){
+	/**
+	 * @constructor
+	 */ 
+	Private = function(){
+		/** contains the memory used by the handler */
+		this.memory = []; 
+		
+		/** contains the identifier of the memory last entry used. */
+		this.lastUsedId = -1;
+	}
+	
+	/** 
+	 * Allows to add a private variable to an instance.
+	 * @function
+	 */
+	Private.prototype.set = function(name, value, instance){
+		if(this.lastUsedId != -1 && this.memory[this.lastUsedId].instance == instance){
+			this.memory[this.lastUsedId].attributes[name] = value;
+			return;
+		}
+
+		for(var i = 0; i < this.memory.length; i++){
+			if(this.memory[i].instance == instance){
+				this.lastUsedId = i;
+				this.memory[i].attributes[name] = value;
+				return;
+			}
+		}
+		
+		/** creates a new entry */
+		var newEntry = {};
+		newEntry["instance"] = instance;
+		newEntry["attributes"] = [];
+		newEntry.attributes[name] = value;
+		
+		this.memory.push(newEntry); 
+	}
+	
+	/** 
+	 * Allows to get a private variable to an instance.
+	 * @function
+	 */
+	Private.prototype.get = function(name, instance){
+		if(this.lastUsedId != -1 && this.memory[this.lastUsedId].instance == instance){
+			return this.memory[this.lastUsedId].attributes[name];
+		}
+		
+		for(var i = 0; i < this.memory.length; i++){
+			if(this.memory[i].instance == instance){
+				this.lastUsedId = i;
+				return this.memory[i].attributes[name];
+			}
+		}
+		return undefined;
+	}
+	
+	/** 
+	 * Allows to get a private variable to all the instance which has this variable.
+	 * @function
+	 * @return {array} result - A list of object containing the instance and the value of the private variable.
+	 */
+	Private.prototype.getAllInstance = function(name){
+		var result = [];
+		
+		for(var i = 0; i < this.memory.length; i++){
+			if(typeof(this.memory[i].attributes[name]) != "undefined"){
+				var obj = {};
+				obj.instance = this.memory[i].instance;
+				obj[name] = this.memory[i].attributes[name];
+				result.push(obj);
+			}
+		}
+		return result;
+	}
+	
+	/** 
+	 * Allows to delete an instance entry.
+	 * @function
+	 */
+	Private.prototype.deleteInstance = function(instance){	
+		for(var i = 0; i < this.memory.length; i++){
+			if(this.memory[i].instance == instance){
+				this.memory.splice(i - 1, 1);
+			}
+		}
+	}
+})();;/**
+ * Contains the ContactManager class.
+ * The ContactManager class provide a meaning to manage
+ * buttons and their actions easily.
+ * @file
+ */
+
+(function(){
+	/** @private */
+	var _private = new Private;
+
+	/**
+	 * Provide the cards's edition bar
+	 * @constructor
+	 */
+	ContactManager = function(){}
+	
+	/** return a reference on the node of the named button. */
+	ContactManager.prototype.button = function(name){
+		var listBtn = _private.get("listBtn", this);
+		for(var i = 0; i < listBtn.length; i++){
+			if(listBtn[i].name == name){
+				return listBtn[i].node;
+			}
+		}
+	}
+	
+	/**
+	 * Allows to create button.
+	 * @function
+	 * @param {string} name - the name of the button
+	 * @param {object} [node] - the node of the button
+	 */
+	ContactManager.prototype.newButton = function(name, node){
+		if(typeof(node) == "undefined"){
+			node = null;
+		}
+	
+		var listBtn = _private.get("listBtn", this);
+		if(typeof(listBtn) == "undefined"){
+			listBtn = [];
+			
+			/** adds a new entry */
+			listBtn.push({name: name, node: node, onPress: []});
+		}else{
+			/** checks if the button already exist */
+			var id = -1;
+			for(var i = 0; i < listBtn.length; i++){
+				if(listBtn[i].name == name){
+					id = i;
+					break;
+				}
+			}
+			
+			/** overloads the existing button */
+			if(id != -1){
+				listBtn[id].node = node;
+				listBtn[id].onPress = [];
+				
+			/** adds a new entry */
+			}else{
+				listBtn.push({name: name, node: node, onPress: []});
+			}
+		}
+		
+		_private.set("listBtn", listBtn, this);
+	}
+	
+	/**
+	 * Define a new node to an existing button
+	 * @function
+	 */
+	ContactManager.prototype.setButtonNode = function(name, node){
+		var listBtn = _private.get("listBtn", this);
+		for(var i = 0; i < listBtn.length; i++){
+			if(listBtn[i].name == name){
+				listBtn[i].node = node;
+				break;
+			}
+		}
+		_private.set("listBtn", listBtn, this);
+	}
+	
+	/**
+	 * enable a button
+	 * @function
+	 * @param {string} name - the name of the button.
+	 */
+	ContactManager.prototype.enableButton = function(name){
+		setStateButton(name, "enable", this);
+	}
+	
+	/**
+	 * disable a button
+	 * @function
+	 * @param {string} name - the name of the button.
+	 */
+	ContactManager.prototype.disableButton = function(name){
+		setStateButton(name, "disable", this);
+	}
+	
+	/**
+	 * get a button state
+	 * @function
+	 * @param {string} name - the name of the button.
+	 */
+	ContactManager.prototype.getStateButton = function(name){
+		var listBtn = _private.get("listBtn", this);
+		for(var i = 0; i < listBtn.length; i++){
+			if(listBtn[i].name == name){
+				return listBtn[i].state;
+			}
+		}
+	}
+	
+	/** prevent the contact area to be active */
+	ContactManager.prototype.lock = function(){
+		_private.set("locked", true, this);
+	}
+	
+	/** prevent the contact area to be active  */
+	ContactManager.prototype.unlock = function(){
+		_private.set("locked", false, this);
+	}
+	
+	/** return the current state of the contact manager */
+	ContactManager.prototype.getState = function(){
+		return _private.get("locked", this);
+	}
+	
+	/**
+	 * Allows to determine actions when a button is pressed
+	 * @memberof ContactManager#
+	 */
+	ContactManager.prototype.onPressButton = function(name, callback){
+		var listBtn = _private.get("listBtn", this);
+		for(var i = 0; i < listBtn.length; i++){
+			if(listBtn[i].name == name){
+				listBtn[i].onPress.push(callback);
+				break;
+			}
+		}
+		_private.set("listBtn", listBtn, this);
+	}
+	
+	// PRIVATE FUNCTIONS
+	/**
+	 * Set the state of a button.
+	 * Used by the functions enableButton and disableButton
+	 * @private
+	 * @function
+	 */
+	function setStateButton(name, state, instance){
+		var listBtn = _private.get("listBtn", instance);
+		for(var i = 0; i < listBtn.length; i++){
+			if(listBtn[i].name == name){
+				listBtn[i].state = state;
+				break;
+			}
+		}
+		_private.set("listBtn", listBtn, instance);
+	}
+	
+	// EVENTS
+	/**
+	 * Allows to handle buttons 
+	 * @event
+	 * @private
+	 */
+	function onmouseup(event){
+		var target = util.getTarget(event);
+		var button = util.getMouseButton(event);
+		util.preventDefault(event);
+
+		if(button == 1){
+			var listBtn = _private.get("listBtn", this);
+			var locked = _private.get("locked", this);
+			
+			if(!locked){
+				var allInstance = _private.getAllInstance("listBtn");
+				for(var i = 0; i < allInstance.length; i++){
+					var listBtn = allInstance[i].listBtn
+					for(var j = 0; j < listBtn.length; j++){
+						if(listBtn[j].state == "enable" && (target == listBtn[j].node || util.hasParent(target, listBtn[j].node))){
+							var onPress = listBtn[j].onPress;
+							for(var k = 0; k < onPress.length; k++){
+								onPress[k]();
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Allows to prevent the default behaviour if a button is pressed.
+	 * @event
+	 * @private
+	 */
+	function onmousedown(event){
+		var target = util.getTarget(event);
+		var button = util.getMouseButton(event);
+
+		if(button == 1){
+			var allInstance = _private.getAllInstance("listBtn");
+			for(var i = 0; i < allInstance.length; i++){
+				var listBtn = allInstance[i].listBtn
+				for(var j = 0; j < listBtn.length; j++){
+					if(target == listBtn[j].node || util.hasParent(target, listBtn[j].node)){
+						util.preventDefault(event);
+						return;
+					}
+				}
+			}
+		}
+	}
+
+	/** adds the events */
+	util.addEvent(document, "mouseup", onmouseup);
+	util.addEvent(document, "mousedown", onmousedown);
+})()
+;/**
  * @file This file handles the settings and
  * defines variables used by the application.
  */
@@ -2315,15 +2646,9 @@ List.showMask = false;
  */
 
 (function(){
-	/** 
-	 * connector 
-	 * @private
-	 */
-	var list_onPressBtnRemove = [];
-	var list_onPressBtnEdit = [];
 
 	/** @private */
-	var locked = false;
+	var _private = new Private;
 
 	/**
 	 * Provide the cards's edition bar
@@ -2339,15 +2664,22 @@ List.showMask = false;
 		this.visible = false;
 		this.animated = false;
 		
+		/** allows to lock the edit bar */
+		this.locked = false;
+		
+		/** create the contact manager to manage buttons. */
+		this.contact = new ContactManager;
+		
 		/** the editBar inherit from the current object */
 		util.inherit(editBar, this);
 		
 		/** the buttons */
-		createButton("remove", editBar);
-		createButton("edition", editBar);
-		createButton("bold", editBar);
-		createButton("italic", editBar);
-		createButton("underline", editBar);
+		editBar.contact.newButton("remove");
+		editBar.contact.newButton("edition");
+		editBar.contact.newButton("fontStyle");
+		editBar.contact.newButton("bold");
+		editBar.contact.newButton("italic");
+		editBar.contact.newButton("underline");
 		
 		/** puts the edit bar in standard mode */
 		editBar.standardMode();
@@ -2355,122 +2687,12 @@ List.showMask = false;
 		/** hides the edit bar */
 		editBar.hide();
 		
-		/** create the reference to the event functions */
-		editBar.REF_onMouseUp = editBar.onMouseUp.bind(editBar);
-		editBar.REF_onMouseDown = editBar.onMouseDown.bind(editBar);
-
-		/** events */
-		util.addEvent(document, "mouseup", editBar.REF_onMouseUp);
-		util.addEvent(document, "mousedown", editBar.REF_onMouseDown);
-		
 		return editBar;
 	}
 	
 	/** return a reference on the node of the named button. */
 	EditBar.prototype.button = function(name){
-		var listBtn = privateAttribute("listBtn", this);
-		for(var i = 0; i < listBtn.length; i++){
-			if(listBtn[i].name == name){
-				return listBtn[i].node;
-			}
-		}
-	}
-	
-	/**
-	 * Allows to create button.
-	 * @private
-	 * @function
-	 */
-	function createButton(name, instance){
-		var listBtn = privateAttribute("listBtn", instance);
-		if(typeof(listBtn) == "undefined"){
-			listBtn = [];
-			
-			/** adds a new entry */
-			listBtn.push({name: name, node: null, onPress: []});
-		}else{
-			/** checks if the button already exist */
-			var id = -1;
-			for(var i = 0; i < listBtn.length; i++){
-				if(listBtn[i].name == name){
-					id = i;
-					break;
-				}
-			}
-			
-			/** overloads the existing button */
-			if(id != -1){
-				listBtn[id].node = null;
-				listBtn[id].onPress = [];
-				
-			/** adds a new entry */
-			}else{
-				listBtn.push({name: name, node: null, onPress: []});
-			}
-		}
-		
-		setPrivateAttribute("listBtn", listBtn, instance);
-	}
-	
-	/**
-	 * Determine a node button
-	 * @private
-	 * @function
-	 */
-	function buttonNode(name, node, instance){
-		var listBtn = privateAttribute("listBtn", instance);
-		for(var i = 0; i < listBtn.length; i++){
-			if(listBtn[i].name == name){
-				listBtn[i].node = node;
-				break;
-			}
-		}
-		setPrivateAttribute("listBtn", listBtn, this);
-	}
-	
-	/**
-	 * enable a button
-	 * @private
-	 * @function
-	 */
-	function enableButton(name, instance){
-		setStateButton(name, "enable", instance);
-	}
-	
-	/**
-	 * enable a button
-	 * @private
-	 * @function
-	 */
-	function disableButton(name, instance){
-		setStateButton(name, "disable", instance);
-	}
-	
-	/**
-	 * Set the state of a button.
-	 * Used by the functions enableButton and disableButton
-	 * @private
-	 * @function
-	 */
-	function setStateButton(name, state, instance){
-		var listBtn = privateAttribute("listBtn", instance);
-		for(var i = 0; i < listBtn.length; i++){
-			if(listBtn[i].name == name){
-				listBtn[i].state = state;
-				break;
-			}
-		}
-		setPrivateAttribute("listBtn", listBtn, this);
-	}
-	
-	/** prevent the edit bar to be active and animated */
-	EditBar.prototype.lock = function(){
-		locked = true;
-	}
-	
-	/** puts the edit bar in its normal state */
-	EditBar.prototype.unlock = function(){
-		locked = false;
+		return this.contact.button(name);
 	}
 	
 	/**
@@ -2478,14 +2700,7 @@ List.showMask = false;
 	 * @memberof EditBar#
 	 */
 	EditBar.prototype.onPressButton = function(name, callback){
-		var listBtn = privateAttribute("listBtn", this);
-		for(var i = 0; i < listBtn.length; i++){
-			if(listBtn[i].name == name){
-				listBtn[i].onPress.push(callback);
-				break;
-			}
-		}
-		setPrivateAttribute("listBtn", listBtn, this);
+		return this.contact.onPressButton(name, callback);
 	}
 	
 	/**
@@ -2495,20 +2710,20 @@ List.showMask = false;
 	EditBar.prototype.standardMode = function(erase){
 		/** erases the mode. */
 		if(typeof(erase) != "undefined" && erase){
-			var btnRemove = this.button("remove");
-			var btnEdit = this.button("edition");
+			var btnRemove = this.contact.button("remove");
+			var btnEdit = this.contact.button("edition");
 			
 			/** erases the standard mode. */
 			btnRemove.parentNode.removeChild(btnRemove);
 			btnEdit.parentNode.removeChild(btnEdit);
 			
 			/** puts the attributes to null */
-			disableButton("remove", this);
-			disableButton("edition", this);
+			this.contact.disableButton("remove");
+			this.contact.disableButton("edition");
 				
 		/** creates the mode. */
 		}else{
-			var mode = privateAttribute("mode", this);
+			var mode = _private.get("mode", this);
 			if(typeof(mode) == "undefined" || (typeof(mode) != "undefined" && mode != "standard")){
 				/** erase the current mode */
 				if(typeof(mode) != "undefined" && mode == "edition"){
@@ -2520,21 +2735,21 @@ List.showMask = false;
 				btnRemove.className = "card-btn card-btnRemove";
 				btnRemove.title = "Remove";
 				this.appendChild(btnRemove);
-				buttonNode("remove", btnRemove, this);
+				this.contact.setButtonNode("remove", btnRemove);
 
 				/** edit Button */
 				btnEdit = document.createElement("div");
 				btnEdit.className = "card-btn card-btnEdit";
 				btnEdit.title = "Edition";
 				this.appendChild(btnEdit);
-				buttonNode("edition", btnEdit, this);
+				this.contact.setButtonNode("edition", btnEdit);
 				
-				// TEST
-				enableButton("remove", this);
-				enableButton("edition", this);
+				/** enable the buttons */
+				this.contact.enableButton("remove");
+				this.contact.enableButton("edition");
 				
 				/** set the mode */
-				setPrivateAttribute("mode", "standard", this);
+				_private.set("mode", "standard", this);
 			}
 		}
 	}
@@ -2546,56 +2761,66 @@ List.showMask = false;
 	EditBar.prototype.editionMode = function(erase){
 		/** erases the mode. */
 		if(typeof(erase) != "undefined" && erase){
-			var btnBold = this.button("bold");
-			var btnItalic = this.button("italic");
-			var btnUnderline = this.button("underline");
+			var btnFontStyle = this.contact.button("fontStyle");
+			var btnBold = this.contact.button("bold");
+			var btnItalic = this.contact.button("italic");
+			var btnUnderline = this.contact.button("underline");
 			
 			btnBold.parentNode.removeChild(btnBold);
 			btnItalic.parentNode.removeChild(btnItalic);
 			btnUnderline.parentNode.removeChild(btnUnderline);
 			
 			/** disable the button */
-			disableButton("bold", this);
-			disableButton("italic", this);
-			disableButton("underline", this);
+			this.contact.disableButton("fontStyle");
+			this.contact.disableButton("bold");
+			this.contact.disableButton("italic");
+			this.contact.disableButton("underline");
 			
 		/** creates the mode. */
 		}else{
-			var mode = privateAttribute("mode", this);
+			var mode = _private.get("mode", this);
 			if(typeof(mode) == "undefined" || (typeof(mode) != "undefined" && mode != "edition")){
 				/** erase the current mode */
 				if(typeof(mode) != "undefined" && mode == "standard"){
 					this.standardMode(true);
 				}
 			
+				/** fontStyle */
+				var btnFontStyle = document.createElement("div");
+				btnFontStyle.className = "card-btn card-btnFontStyle";
+				btnFontStyle.title = "Font Style";
+				this.appendChild(btnFontStyle);
+				this.contact.setButtonNode("bold", btnFontStyle);
+			
 				/** bold Button */
-				btnBold = document.createElement("div");
+				var btnBold = document.createElement("div");
 				btnBold.className = "card-btn card-btnBold";
 				btnBold.title = "Bold";
 				this.appendChild(btnBold);
-				buttonNode("bold", btnBold, this);
+				this.contact.setButtonNode("bold", btnBold);
 				
 				/** italic Button */
-				btnItalic = document.createElement("div");
+				var btnItalic = document.createElement("div");
 				btnItalic.className = "card-btn card-btnItalic";
 				btnItalic.title = "Italic";
 				this.appendChild(btnItalic);
-				buttonNode("italic", btnItalic, this);
+				this.contact.setButtonNode("italic", btnItalic);
 				
 				/** underline Button */
-				btnUnderline = document.createElement("div");
+				var btnUnderline = document.createElement("div");
 				btnUnderline.className = "card-btn card-btnUnderline";
 				btnUnderline.title = "Underline";
 				this.appendChild(btnUnderline);
-				buttonNode("underline", btnUnderline, this);
+				this.contact.setButtonNode("underline", btnUnderline, this);
 				
-				/** disable the button */
-				enableButton("bold", this);
-				enableButton("italic", this);
-				enableButton("underline", this);
+				/** enable the button */
+				this.contact.enableButton("fontStyle");
+				this.contact.enableButton("bold");
+				this.contact.enableButton("italic");
+				this.contact.enableButton("underline");
 			
 				/** set the mode */
-				setPrivateAttribute("mode", "edition", this);
+				_private.set("mode", "edition", this);
 			}
 		}
 	}
@@ -2616,7 +2841,7 @@ List.showMask = false;
 			this.animId = 0;
 		}else if(this.visible && firstIteration){
 			anim = false;
-		}else if(locked){
+		}else if(this.locked){
 			this.hide();
 			anim = false;
 		}else if(!this.animated && !this.visible){
@@ -2661,7 +2886,7 @@ List.showMask = false;
 			this.animId = 0;
 		}else if(!this.visible){
 			anim = false;
-		}else if(locked){
+		}else if(this.locked){
 			this.show();
 			anim = false;
 		}
@@ -2686,48 +2911,6 @@ List.showMask = false;
 						callback();
 				}
 			});
-		}
-	}
-	
-	/**
-	 * Allows to handle buttons 
-	 * @event
-	 */
-	EditBar.prototype.onMouseUp = function(event){
-		var target = util.getTarget(event);
-		var button = util.getMouseButton(event);
-		util.preventDefault(event);
-
-		if(button == 1){
-			var listBtn = privateAttribute("listBtn", this);
-			
-			for(var i = 0; i < listBtn.length; i++){
-				if(listBtn[i].state == "enable" && (target == listBtn[i].node || util.hasParent(target, listBtn[i].node))){
-					var onPress = listBtn[i].onPress;
-					for(var j = 0; j < onPress.length; j++){
-						onPress[j]();
-					}
-				}
-			}
-		}
-	}
-	
-	/**
-	 * Allows to prevent the default behaviour if a button is pressed.
-	 * @event
-	 */
-	EditBar.prototype.onMouseDown = function(event){
-		var target = util.getTarget(event);
-		var button = util.getMouseButton(event);
-
-		if(button == 1){
-			var listBtn = privateAttribute("listBtn", this);
-			for(var i = 0; i < listBtn.length; i++){
-				if(target == listBtn[i].node || util.hasParent(target, listBtn[i].node)){
-					util.preventDefault(event);
-					return;
-				}
-			}
 		}
 	}
 	
@@ -2781,62 +2964,13 @@ List.showMask = false;
 			callback();
 		}
 	}
-	
-	// PRIVATE ATTRIBUTES
-	var privateAttr_list = []; 
-	var privateAttr_lastUsedId = -1;
-	
-	/** 
-	 * Allows to add a private variable to an instance.
-	 * @function
-	 */
-	function setPrivateAttribute(name, value, instance){
-		if(privateAttr_lastUsedId != -1 && privateAttr_list[privateAttr_lastUsedId].instance == instance){
-			privateAttr_list[privateAttr_lastUsedId].attributes[name] = value;
-			return;
-		}
-
-		for(var i = 0; i < privateAttr_list.length; i++){
-			if(privateAttr_list[i].instance == instance){
-				privateAttr_list[i].attributes[name] = value;
-				return;
-			}
-		}
-		
-		/** creates a new entry */
-		var newEntry = {};
-		newEntry["instance"] = instance;
-		newEntry["attributes"] = [];
-		newEntry.attributes[name] = value;
-		
-		privateAttr_list.push(newEntry); 
-	}
-	
-	/** 
-	 * Allows to get a private variable to an instance.
-	 * @function
-	 */
-	function privateAttribute(name, instance){
-		if(privateAttr_lastUsedId != -1 && privateAttr_list[privateAttr_lastUsedId].instance == instance){
-			return privateAttr_list[privateAttr_lastUsedId].attributes[name];
-		}
-		
-		for(var i = 0; i < privateAttr_list.length; i++){
-			if(privateAttr_list[i].instance == instance){
-				privateAttr_lastUsedId = i;
-				return privateAttr_list[i].attributes[name];
-			}
-		}
-		return undefined;
-	}
 })()
 ;/** @file This file contains the Card class. */
 
 (function(){
 
 	/** private attributes */
-	var list_onRemoval = [];
-	var list_onPressEdition = [];
+	var _private = new Private;
 
 	/**
 	 * Provides cards
@@ -2925,6 +3059,7 @@ List.showMask = false;
 	Card.prototype.setEditable = function(bool){
 		/** set editable */
 		if(bool && !this.editable){
+			var list_onPressEdition = _private.get("list_onPressEdition", this);
 			for(var i = 0; i < list_onPressEdition.length; i++){
 				list_onPressEdition[i]();
 			}
@@ -2932,7 +3067,7 @@ List.showMask = false;
 			this.editable = true;
 			this.setDraggable(false);
 			this.editBar.editionMode();
-			this.editBar.lock();
+			this.editBar.locked = true;
 			
 			this.editionArea.contentEditable = true;
 			this.editionArea.style.cursor = "text";
@@ -2966,7 +3101,7 @@ List.showMask = false;
 				this.editable = false;
 				
 				this.setDraggable(true);
-				this.editBar.unlock();
+				this.editBar.locked = false;
 				if(this.editBar.visible){
 					var that = this;
 					this.editBar.hide(1, function(){
@@ -2993,6 +3128,7 @@ List.showMask = false;
 	 * @memberof Card#
 	 */
 	Card.prototype.remove = function(){
+		var list_onRemoval = _private.get("list_onRemoval", this);
 		for(var i = 0; i < list_onRemoval.length; i++){
 			list_onRemoval[i]();
 		}
@@ -3039,6 +3175,7 @@ List.showMask = false;
 	 * @memberof Card#
 	 */
 	Card.prototype.onRemoval = function(callback){
+		var list_onRemoval = _private.get("list_onRemoval", this);
 		list_onRemoval.push(callback);
 	}
 	
@@ -3047,6 +3184,7 @@ List.showMask = false;
 	 * @memberof Card#
 	 */
 	Card.prototype.onPressEdition = function(callback){
+		var list_onPressEdition = _private.get("list_onRemoval", this);
 		list_onPressEdition.push(callback);
 	}
 
@@ -3075,7 +3213,7 @@ List.showMask = false;
 				this.dragged = true;
 				this.style.zIndex = 99;
 				this.editBar.hide(2);
-				this.editBar.lock();
+				this.editBar.locked = true;
 
 				/** calculates the mouse position in the object in order to set the object where the mouse catch it, recording the result in the "offset" variables. */ 
 				var mouseX = event.clientX + document.documentElement.scrollLeft + document.body.scrollLeft;
@@ -3167,7 +3305,7 @@ List.showMask = false;
 				this.dragged = false;
 				this.offsetX = 0;
 				this.offsetY = 0;
-				this.editBar.unlock();
+				this.editBar.locked = false;
 
 				/** remove the masks */
 				Card.removeMask()
@@ -3251,11 +3389,10 @@ List.showMask = false;
 		}else{
 			key = util.fromKeycodeToHtml(event.keyCode);
 		}
-
+		
 		if(event.keyCode != 16){ // "shift"
-			recoverTextHTML(this);
-			
-			this.editBar.style.top = "100%";
+			var heightEditBar = util.getStyle(this.editBar, "height");
+			this.editBar.style.top = "calc(100% - " + heightEditBar + ")";
 		}
 	}
 
@@ -3366,6 +3503,10 @@ List.showMask = false;
 	 * @private
 	 */
 	function connection(card){
+		/** creates privates variables */
+		_private.set("list_onRemoval", [], card);
+		_private.set("list_onPressEdition", [], card);
+	
 		/** references on functions which handle animations. */
 		card.REF_EVENT_onmousedown = card.EVENT_onmousedown.bind(card);
 		card.REF_EVENT_onmousemove = card.EVENT_onmousemove.bind(card);
@@ -3444,7 +3585,6 @@ List.showMask = false;
 		/** set the card as editable */
 		card.setEditable(true);
 	}
-	
 })();
 ;/**
  * @file This is the main file of the application. It creates 
