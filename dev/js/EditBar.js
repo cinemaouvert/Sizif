@@ -25,25 +25,127 @@
 		/** allows to lock the edit bar */
 		this.locked = false;
 		
-		/** create the contact manager to manage buttons. */
-		this.contact = new ContactManager;
+		/** create the interface manager to manage buttons. */
+		this.UI = new UI;
+		
+		/** create the mode handler to manage modes. */
+		this.modeHandler = new ModeHandler;
 		
 		/** the editBar inherit from the current object */
 		util.inherit(editBar, this);
 		
 		/** the buttons */
-		editBar.contact.newButton("remove");
-		editBar.contact.newButton("edition");
-		editBar.contact.newButton("fontFamily");
-		editBar.contact.newButton("bold");
-		editBar.contact.newButton("italic");
-		editBar.contact.newButton("underline");
+		editBar.UI.newButton("remove");
+		editBar.UI.newButton("edition");
+		editBar.UI.newButton("fontFamily");
+		editBar.UI.newButton("bold");
+		editBar.UI.newButton("italic");
+		editBar.UI.newButton("underline");
 		
 		/** creates the font family menu */
-		editBar.contact.onPressButton("fontFamily", createFontFamilyMenu);
+		editBar.UI.onPressButton("fontFamily", createFontFamilyMenu);
+		
+		/** the standard mode */
+		editBar.modeHandler.newMode("standard", function(){
+			/** close Button */
+			btnRemove = document.createElement("div");
+			btnRemove.className = "card-btn card-btnRemove";
+			btnRemove.title = "Remove";
+			editBar.appendChild(btnRemove);
+			editBar.UI.setButtonNode("remove", btnRemove);
+
+			/** edit Button */
+			btnEdit = document.createElement("div");
+			btnEdit.className = "card-btn card-btnEdit";
+			btnEdit.title = "Edition";
+			editBar.appendChild(btnEdit);
+			editBar.UI.setButtonNode("edition", btnEdit);
+			
+			/** enable the buttons */
+			editBar.UI.enableButton("remove");
+			editBar.UI.enableButton("edition");
+			
+			/** set the mode */
+			_private.set("mode", "standard", editBar);
+		});
+		
+		editBar.modeHandler.destructor("standard", function(){
+			var btnRemove = editBar.button("remove");
+			var btnEdit = editBar.button("edition");
+			
+			/** erases the standard mode. */
+			btnRemove.parentNode.removeChild(btnRemove);
+			btnEdit.parentNode.removeChild(btnEdit);
+			
+			/** puts the attributes to null */
+			editBar.UI.disableButton("remove");
+			editBar.UI.disableButton("edition");
+		});
+		
+		/** the edition mode */
+		editBar.modeHandler.newMode("edition", function(){
+			/** fontFamily */
+			var btnFontFamily = document.createElement("div");
+			btnFontFamily.className = "card-btn card-btnFontFamily";
+			btnFontFamily.title = "Font Style";
+			var fontName = document.createTextNode("Verdana");
+			btnFontFamily.appendChild(fontName);
+			editBar.appendChild(btnFontFamily);
+			editBar.UI.setButtonNode("fontFamily", btnFontFamily);
+		
+			/** bold Button */
+			var btnBold = document.createElement("div");
+			btnBold.className = "card-btn card-btnBold";
+			btnBold.title = "Bold";
+			editBar.appendChild(btnBold);
+			editBar.UI.setButtonNode("bold", btnBold);
+			
+			/** italic Button */
+			var btnItalic = document.createElement("div");
+			btnItalic.className = "card-btn card-btnItalic";
+			btnItalic.title = "Italic";
+			editBar.appendChild(btnItalic);
+			editBar.UI.setButtonNode("italic", btnItalic);
+			
+			/** underline Button */
+			var btnUnderline = document.createElement("div");
+			btnUnderline.className = "card-btn card-btnUnderline";
+			btnUnderline.title = "Underline";
+			editBar.appendChild(btnUnderline);
+			editBar.UI.setButtonNode("underline", btnUnderline, editBar);
+			
+			/** enable the button */
+			editBar.UI.enableButton("fontFamily");
+			editBar.UI.enableButton("bold");
+			editBar.UI.enableButton("italic");
+			editBar.UI.enableButton("underline");
+		
+			/** set the mode */
+			_private.set("mode", "edition", editBar);
+		});
+		
+		editBar.modeHandler.destructor("edition", function(){
+			/** get buttons */
+			var btnFontFamily = editBar.button("fontFamily");
+			var btnBold = editBar.button("bold");
+			var btnItalic = editBar.button("italic");
+			var btnUnderline = editBar.button("underline");
+			
+			/** remove nodes */
+			btnFontFamily.parentNode.removeChild(btnFontFamily);
+			btnBold.parentNode.removeChild(btnBold);
+			btnItalic.parentNode.removeChild(btnItalic);
+			btnUnderline.parentNode.removeChild(btnUnderline);
+			
+			/** disable the buttons */
+			editBar.UI.disableButton("fontFamily");
+			editBar.UI.disableButton("bold");
+			editBar.UI.disableButton("italic");
+			editBar.UI.disableButton("underline");
+		});
 		
 		/** puts the edit bar in standard mode */
-		editBar.standardMode();
+		editBar.mode("standard");
 		
 		/** hides the edit bar */
 		editBar.hide();
@@ -53,7 +155,7 @@
 	
 	/** return a reference on the node of the named button. */
 	EditBar.prototype.button = function(name){
-		return this.contact.button(name);
+		return this.UI.button(name);
 	}
 	
 	/**
@@ -61,134 +163,15 @@
 	 * @memberof EditBar#
 	 */
 	EditBar.prototype.onPressButton = function(name, callback){
-		return this.contact.onPressButton(name, callback);
+		this.UI.onPressButton(name, callback);
 	}
 	
 	/**
 	 * Allows to put the edit bar into standard mode.
 	 * @memberof EditBar#
 	 */
-	EditBar.prototype.standardMode = function(erase){
-		/** erases the mode. */
-		if(typeof(erase) != "undefined" && erase){
-			var btnRemove = this.contact.button("remove");
-			var btnEdit = this.contact.button("edition");
-			
-			/** erases the standard mode. */
-			btnRemove.parentNode.removeChild(btnRemove);
-			btnEdit.parentNode.removeChild(btnEdit);
-			
-			/** puts the attributes to null */
-			this.contact.disableButton("remove");
-			this.contact.disableButton("edition");
-				
-		/** creates the mode. */
-		}else{
-			var mode = _private.get("mode", this);
-			if(typeof(mode) == "undefined" || (typeof(mode) != "undefined" && mode != "standard")){
-				/** erase the current mode */
-				if(typeof(mode) != "undefined" && mode == "edition"){
-					this.editionMode(true);
-				}
-			
-				/** close Button */
-				btnRemove = document.createElement("div");
-				btnRemove.className = "card-btn card-btnRemove";
-				btnRemove.title = "Remove";
-				this.appendChild(btnRemove);
-				this.contact.setButtonNode("remove", btnRemove);
-
-				/** edit Button */
-				btnEdit = document.createElement("div");
-				btnEdit.className = "card-btn card-btnEdit";
-				btnEdit.title = "Edition";
-				this.appendChild(btnEdit);
-				this.contact.setButtonNode("edition", btnEdit);
-				
-				/** enable the buttons */
-				this.contact.enableButton("remove");
-				this.contact.enableButton("edition");
-				
-				/** set the mode */
-				_private.set("mode", "standard", this);
-			}
-		}
-	}
-	
-	/**
-	 * Allows to put the edit bar into edition mode.
-	 * @memberof EditBar#
-	 */
-	EditBar.prototype.editionMode = function(erase){
-		/** erases the mode. */
-		if(typeof(erase) != "undefined" && erase){
-			/** get buttons */
-			var btnFontFamily = this.contact.button("fontFamily");
-			var btnBold = this.contact.button("bold");
-			var btnItalic = this.contact.button("italic");
-			var btnUnderline = this.contact.button("underline");
-			
-			/** remove nodes */
-			btnFontFamily.parentNode.removeChild(btnFontFamily);
-			btnBold.parentNode.removeChild(btnBold);
-			btnItalic.parentNode.removeChild(btnItalic);
-			btnUnderline.parentNode.removeChild(btnUnderline);
-			
-			/** disable the buttons */
-			this.contact.disableButton("fontFamily");
-			this.contact.disableButton("bold");
-			this.contact.disableButton("italic");
-			this.contact.disableButton("underline");
-			
-		/** creates the mode. */
-		}else{
-			var mode = _private.get("mode", this);
-			if(typeof(mode) == "undefined" || (typeof(mode) != "undefined" && mode != "edition")){
-				/** erase the current mode */
-				if(typeof(mode) != "undefined" && mode == "standard"){
-					this.standardMode(true);
-				}
-			
-				/** fontFamily */
-				var btnFontFamily = document.createElement("div");
-				btnFontFamily.className = "card-btn card-btnFontFamily";
-				btnFontFamily.title = "Font Style";
-				var fontName = document.createTextNode("Verdana");
-				btnFontFamily.appendChild(fontName);
-				this.appendChild(btnFontFamily);
-				this.contact.setButtonNode("fontFamily", btnFontFamily);
-			
-				/** bold Button */
-				var btnBold = document.createElement("div");
-				btnBold.className = "card-btn card-btnBold";
-				btnBold.title = "Bold";
-				this.appendChild(btnBold);
-				this.contact.setButtonNode("bold", btnBold);
-				
-				/** italic Button */
-				var btnItalic = document.createElement("div");
-				btnItalic.className = "card-btn card-btnItalic";
-				btnItalic.title = "Italic";
-				this.appendChild(btnItalic);
-				this.contact.setButtonNode("italic", btnItalic);
-				
-				/** underline Button */
-				var btnUnderline = document.createElement("div");
-				btnUnderline.className = "card-btn card-btnUnderline";
-				btnUnderline.title = "Underline";
-				this.appendChild(btnUnderline);
-				this.contact.setButtonNode("underline", btnUnderline, this);
-				
-				/** enable the button */
-				this.contact.enableButton("fontFamily");
-				this.contact.enableButton("bold");
-				this.contact.enableButton("italic");
-				this.contact.enableButton("underline");
-			
-				/** set the mode */
-				_private.set("mode", "edition", this);
-			}
-		}
+	EditBar.prototype.mode = function(name){
+		this.modeHandler.mode(name);
 	}
 	
 	/**

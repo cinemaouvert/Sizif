@@ -437,15 +437,18 @@ util.inherit = function(destination, source){
  */
 
 (function(){
+	/** @private */
+	var _storage = [];
+
 	/**
 	 * @constructor
 	 */ 
 	Private = function(){
-		/** contains the memory used by the handler */
-		this.memory = []; 
-		
-		/** contains the identifier of the memory last entry used. */
-		this.lastUsedId = -1;
+		_storage.push({
+			privateObj: this, /** the current instance of private */
+			memory: [], /** contains the memory used by the handler */
+			lastUsedId: -1 /** contains the identifier of the memory last entry used. */
+		});
 	}
 	
 	/** 
@@ -453,15 +456,18 @@ util.inherit = function(destination, source){
 	 * @function
 	 */
 	Private.prototype.set = function(name, value, instance){
-		if(this.lastUsedId != -1 && this.memory[this.lastUsedId].instance == instance){
-			this.memory[this.lastUsedId].attributes[name] = value;
+		var memory = getMemory(this);
+		var lastUsedId = getLastUsedId(this);
+		
+		if(lastUsedId != -1 && memory[lastUsedId].instance == instance){
+			memory[lastUsedId].attribute[name] = value;
 			return;
 		}
 
-		for(var i = 0; i < this.memory.length; i++){
-			if(this.memory[i].instance == instance){
-				this.lastUsedId = i;
-				this.memory[i].attributes[name] = value;
+		for(var i = 0; i < memory.length; i++){
+			if(memory[i].instance == instance){
+				setLastUsedId(i, this);
+				memory[i].attribute[name] = value;
 				return;
 			}
 		}
@@ -469,10 +475,11 @@ util.inherit = function(destination, source){
 		/** creates a new entry */
 		var newEntry = {};
 		newEntry["instance"] = instance;
-		newEntry["attributes"] = [];
-		newEntry.attributes[name] = value;
+		newEntry["attribute"] = [];
+		newEntry.attribute[name] = value;
 		
-		this.memory.push(newEntry); 
+		memory.push(newEntry); 
+		setMemory(memory, this);
 	}
 	
 	/** 
@@ -480,17 +487,40 @@ util.inherit = function(destination, source){
 	 * @function
 	 */
 	Private.prototype.get = function(name, instance){
-		if(this.lastUsedId != -1 && this.memory[this.lastUsedId].instance == instance){
-			return this.memory[this.lastUsedId].attributes[name];
+		var memory = getMemory(this);
+		var lastUsedId = getLastUsedId(this);
+	
+		if(lastUsedId != -1 && memory[lastUsedId].instance == instance){
+			return memory[lastUsedId].attribute[name];
 		}
 		
-		for(var i = 0; i < this.memory.length; i++){
-			if(this.memory[i].instance == instance){
-				this.lastUsedId = i;
-				return this.memory[i].attributes[name];
+		for(var i = 0; i < memory.length; i++){
+			if(memory[i].instance == instance){
+				setLastUsedId(i, this);
+				return memory[i].attribute[name];
 			}
 		}
 		return undefined;
+	}
+	
+	/** 
+	 * Allows to delete a private variable to an instance.
+	 * @function
+	 */
+	Private.prototype.remove = function(name, instance){
+		var memory = getMemory(this);
+		var lastUsedId = getLastUsedId(this);
+	
+		if(lastUsedId != -1 && memory[lastUsedId].instance == instance){
+			delete memory[lastUsedId].attribute[name];
+		}
+		
+		for(var i = 0; i < memory.length; i++){
+			if(memory[i].instance == instance){
+				delete memory[lastUsedId].attribute[name];
+			}
+		}
+		setMemory(memory, this);
 	}
 	
 	/** 
@@ -499,13 +529,14 @@ util.inherit = function(destination, source){
 	 * @return {array} result - A list of object containing the instance and the value of the private variable.
 	 */
 	Private.prototype.getAllInstance = function(name){
+		var memory = getMemory(this);
 		var result = [];
 		
-		for(var i = 0; i < this.memory.length; i++){
-			if(typeof(this.memory[i].attributes[name]) != "undefined"){
+		for(var i = 0; i < memory.length; i++){
+			if(typeof(memory[i].attribute[name]) != "undefined"){
 				var obj = {};
-				obj.instance = this.memory[i].instance;
-				obj[name] = this.memory[i].attributes[name];
+				obj.instance = memory[i].instance;
+				obj[name] = memory[i].attribute[name];
 				result.push(obj);
 			}
 		}
@@ -517,15 +548,71 @@ util.inherit = function(destination, source){
 	 * @function
 	 */
 	Private.prototype.deleteInstance = function(instance){	
-		for(var i = 0; i < this.memory.length; i++){
-			if(this.memory[i].instance == instance){
-				this.memory.splice(i, 1);
+		var memory = getMemory(this);
+	
+		for(var i = 0; i < memory.length; i++){
+			if(memory[i].instance == instance){
+				memory.splice(i, 1);
+			}
+		}
+		setMemory(memory, this);
+	}
+	
+	/** 
+	 * return the memory of the private object 
+	 * @function
+	 * @private
+	 */
+	function getMemory(privateObj){
+		for(var i = 0; i < _storage.length; i++){
+			if(_storage[i].privateObj == privateObj){
+				return _storage[i].memory;
 			}
 		}
 	}
+	
+	/** 
+	 * set the memory of the private object
+	 * @function
+	 * @private
+	 */
+	function setMemory(memory, privateObj){
+		for(var i = 0; i < _storage.length; i++){
+			if(_storage[i].privateObj == privateObj){
+				_storage[i].memory = memory;
+			}
+		}
+	}
+	
+	/** 
+	 * return the last used id by the private object 
+	 * @function
+	 * @private
+	 */
+	function getLastUsedId(privateObj){
+		for(var i = 0; i < _storage.length; i++){
+			if(_storage[i].privateObj == privateObj){
+				return _storage[i].lastUsedId;
+			}
+		}
+	}
+		
+	/** 
+	 * set the last used id by the private object
+	 * @function
+	 * @private
+	 */
+	function setLastUsedId(id, privateObj){
+		for(var i = 0; i < _storage.length; i++){
+			if(_storage[i].privateObj == privateObj){
+				_storage[i].lastUsedId = id;
+			}
+		}
+	}
+	
 })();;/**
- * Contains the ContactManager class.
- * The ContactManager class provide a meaning to manage
+ * Contains the UI class.
+ * The UI class provide a meaning to manage
  * buttons and their actions easily.
  * @file
  */
@@ -538,10 +625,10 @@ util.inherit = function(destination, source){
 	 * Provide the cards's edition bar
 	 * @constructor
 	 */
-	ContactManager = function(){}
+	UI = function(){}
 	
 	/** return a reference on the node of the named button. */
-	ContactManager.prototype.button = function(name){
+	UI.prototype.button = function(name){
 		var listBtn = _private.get("listBtn", this);
 		for(var i = 0; i < listBtn.length; i++){
 			if(listBtn[i].name == name){
@@ -556,7 +643,7 @@ util.inherit = function(destination, source){
 	 * @param {string} name - the name of the button
 	 * @param {object} [node] - the node of the button
 	 */
-	ContactManager.prototype.newButton = function(name, node){
+	UI.prototype.newButton = function(name, node){
 		if(typeof(node) == "undefined"){
 			node = null;
 		}
@@ -595,7 +682,7 @@ util.inherit = function(destination, source){
 	 * Define a new node to an existing button
 	 * @function
 	 */
-	ContactManager.prototype.setButtonNode = function(name, node){
+	UI.prototype.setButtonNode = function(name, node){
 		var listBtn = _private.get("listBtn", this);
 		for(var i = 0; i < listBtn.length; i++){
 			if(listBtn[i].name == name){
@@ -611,7 +698,7 @@ util.inherit = function(destination, source){
 	 * @function
 	 * @param {string} name - the name of the button.
 	 */
-	ContactManager.prototype.enableButton = function(name){
+	UI.prototype.enableButton = function(name){
 		setStateButton(name, "enable", this);
 	}
 	
@@ -620,7 +707,7 @@ util.inherit = function(destination, source){
 	 * @function
 	 * @param {string} name - the name of the button.
 	 */
-	ContactManager.prototype.disableButton = function(name){
+	UI.prototype.disableButton = function(name){
 		setStateButton(name, "disable", this);
 	}
 	
@@ -629,7 +716,7 @@ util.inherit = function(destination, source){
 	 * @function
 	 * @param {string} name - the name of the button.
 	 */
-	ContactManager.prototype.getStateButton = function(name){
+	UI.prototype.getStateButton = function(name){
 		var listBtn = _private.get("listBtn", this);
 		for(var i = 0; i < listBtn.length; i++){
 			if(listBtn[i].name == name){
@@ -639,25 +726,25 @@ util.inherit = function(destination, source){
 	}
 	
 	/** prevent the contact area to be active */
-	ContactManager.prototype.lock = function(){
+	UI.prototype.lock = function(){
 		_private.set("locked", true, this);
 	}
 	
 	/** prevent the contact area to be active  */
-	ContactManager.prototype.unlock = function(){
+	UI.prototype.unlock = function(){
 		_private.set("locked", false, this);
 	}
 	
 	/** return the current state of the contact manager */
-	ContactManager.prototype.getState = function(){
+	UI.prototype.getState = function(){
 		return _private.get("locked", this);
 	}
 	
 	/**
 	 * Allows to determine actions when a button is pressed
-	 * @memberof ContactManager#
+	 * @memberof UI#
 	 */
-	ContactManager.prototype.onPressButton = function(name, callback){
+	UI.prototype.onPressButton = function(name, callback){
 		var listBtn = _private.get("listBtn", this);
 		for(var i = 0; i < listBtn.length; i++){
 			if(listBtn[i].name == name){
@@ -757,6 +844,93 @@ util.inherit = function(destination, source){
 	util.addEvent(document, "mousedown", onmousedown);
 })()
 ;/**
+ * Contains the state handler module which allows to manage
+ * the different states of a node.
+ * @file
+ */
+(function(){
+	var _private = new Private;
+
+	/** @constructor */
+	ModeHandler = function(){
+	
+	}
+
+	ModeHandler.prototype.newMode = function(name, callback){
+		var modeList = _private.get("modeList", this);
+		
+		if(typeof(modeList) == "undefined"){
+			modeList = [];
+		}
+		
+		if(typeof(modeList) == "undefined"){
+			modeList.push({mode: name});
+		}else{
+			modeList.push({mode: name, constructor: callback});
+		}
+		
+		_private.set("modeList", modeList, this);
+	}
+	
+	ModeHandler.prototype.constructor = function(name, callback){
+		var modeList = _private.get("modeList", this);
+		if(typeof(modeList) != "undefined"){
+			var id = getId(name, this);
+			modeList[id].constructor = callback;
+		}
+	}
+	
+	ModeHandler.prototype.mode = function(name){
+		var currentMode = _private.get("currentMode", this);
+		if(currentMode != name){
+			var modeList = _private.get("modeList", this);
+			if(typeof(modeList) != "undefined"){
+				var idCurrent = getId(currentMode, this);
+				
+				if(typeof(idCurrent) != "undefined"){
+					/** destruct the current mode */
+					if(typeof(modeList[idCurrent]["destructor"]) != "undefined"){
+						modeList[idCurrent].destructor();
+					}
+				}
+				
+				/** construct the new mode */
+				var idNew = getId(name, this);
+				if(typeof(modeList[idNew].destructor) != "undefined"){
+					modeList[idNew].constructor();
+				}
+			}
+			
+			/** change the current mode */
+			_private.set("currentMode", name, this);
+		}
+	}
+	
+	ModeHandler.prototype.destructor = function(name, callback){
+		var modeList = _private.get("modeList", this);
+		if(typeof(modeList) != "undefined"){
+			var id = getId(name, this);
+			modeList[id].destructor = callback;
+		}
+	}
+	
+	/**
+	 * Return the id of the mode in the modeList attribute
+	 * @function
+	 * @private
+	 */
+	function getId(name, instance){
+		var modeList = _private.get("modeList", instance);
+		if(typeof(modeList) != "undefined"){
+			for(var i = 0; i < modeList.length; i++){
+				if(modeList[i].mode == name){
+					return i;
+				}
+			}
+		}
+		return undefined;
+	}
+})();;/**
  * @file This file handles the settings and
  * defines variables used by the application.
  */
@@ -2679,25 +2853,127 @@ List.showMask = false;
 		/** allows to lock the edit bar */
 		this.locked = false;
 		
-		/** create the contact manager to manage buttons. */
-		this.contact = new ContactManager;
+		/** create the interface manager to manage buttons. */
+		this.UI = new UI;
+		
+		/** create the mode handler to manage modes. */
+		this.modeHandler = new ModeHandler;
 		
 		/** the editBar inherit from the current object */
 		util.inherit(editBar, this);
 		
 		/** the buttons */
-		editBar.contact.newButton("remove");
-		editBar.contact.newButton("edition");
-		editBar.contact.newButton("fontFamily");
-		editBar.contact.newButton("bold");
-		editBar.contact.newButton("italic");
-		editBar.contact.newButton("underline");
+		editBar.UI.newButton("remove");
+		editBar.UI.newButton("edition");
+		editBar.UI.newButton("fontFamily");
+		editBar.UI.newButton("bold");
+		editBar.UI.newButton("italic");
+		editBar.UI.newButton("underline");
 		
 		/** creates the font family menu */
-		editBar.contact.onPressButton("fontFamily", createFontFamilyMenu);
+		editBar.UI.onPressButton("fontFamily", createFontFamilyMenu);
+		
+		/** the standard mode */
+		editBar.modeHandler.newMode("standard", function(){
+			/** close Button */
+			btnRemove = document.createElement("div");
+			btnRemove.className = "card-btn card-btnRemove";
+			btnRemove.title = "Remove";
+			editBar.appendChild(btnRemove);
+			editBar.UI.setButtonNode("remove", btnRemove);
+
+			/** edit Button */
+			btnEdit = document.createElement("div");
+			btnEdit.className = "card-btn card-btnEdit";
+			btnEdit.title = "Edition";
+			editBar.appendChild(btnEdit);
+			editBar.UI.setButtonNode("edition", btnEdit);
+			
+			/** enable the buttons */
+			editBar.UI.enableButton("remove");
+			editBar.UI.enableButton("edition");
+			
+			/** set the mode */
+			_private.set("mode", "standard", editBar);
+		});
+		
+		editBar.modeHandler.destructor("standard", function(){
+			var btnRemove = editBar.button("remove");
+			var btnEdit = editBar.button("edition");
+			
+			/** erases the standard mode. */
+			btnRemove.parentNode.removeChild(btnRemove);
+			btnEdit.parentNode.removeChild(btnEdit);
+			
+			/** puts the attributes to null */
+			editBar.UI.disableButton("remove");
+			editBar.UI.disableButton("edition");
+		});
+		
+		/** the edition mode */
+		editBar.modeHandler.newMode("edition", function(){
+			/** fontFamily */
+			var btnFontFamily = document.createElement("div");
+			btnFontFamily.className = "card-btn card-btnFontFamily";
+			btnFontFamily.title = "Font Style";
+			var fontName = document.createTextNode("Verdana");
+			btnFontFamily.appendChild(fontName);
+			editBar.appendChild(btnFontFamily);
+			editBar.UI.setButtonNode("fontFamily", btnFontFamily);
+		
+			/** bold Button */
+			var btnBold = document.createElement("div");
+			btnBold.className = "card-btn card-btnBold";
+			btnBold.title = "Bold";
+			editBar.appendChild(btnBold);
+			editBar.UI.setButtonNode("bold", btnBold);
+			
+			/** italic Button */
+			var btnItalic = document.createElement("div");
+			btnItalic.className = "card-btn card-btnItalic";
+			btnItalic.title = "Italic";
+			editBar.appendChild(btnItalic);
+			editBar.UI.setButtonNode("italic", btnItalic);
+			
+			/** underline Button */
+			var btnUnderline = document.createElement("div");
+			btnUnderline.className = "card-btn card-btnUnderline";
+			btnUnderline.title = "Underline";
+			editBar.appendChild(btnUnderline);
+			editBar.UI.setButtonNode("underline", btnUnderline, editBar);
+			
+			/** enable the button */
+			editBar.UI.enableButton("fontFamily");
+			editBar.UI.enableButton("bold");
+			editBar.UI.enableButton("italic");
+			editBar.UI.enableButton("underline");
+		
+			/** set the mode */
+			_private.set("mode", "edition", editBar);
+		});
+		
+		editBar.modeHandler.destructor("edition", function(){
+			/** get buttons */
+			var btnFontFamily = editBar.button("fontFamily");
+			var btnBold = editBar.button("bold");
+			var btnItalic = editBar.button("italic");
+			var btnUnderline = editBar.button("underline");
+			
+			/** remove nodes */
+			btnFontFamily.parentNode.removeChild(btnFontFamily);
+			btnBold.parentNode.removeChild(btnBold);
+			btnItalic.parentNode.removeChild(btnItalic);
+			btnUnderline.parentNode.removeChild(btnUnderline);
+			
+			/** disable the buttons */
+			editBar.UI.disableButton("fontFamily");
+			editBar.UI.disableButton("bold");
+			editBar.UI.disableButton("italic");
+			editBar.UI.disableButton("underline");
+		});
 		
 		/** puts the edit bar in standard mode */
-		editBar.standardMode();
+		editBar.mode("standard");
 		
 		/** hides the edit bar */
 		editBar.hide();
@@ -2707,7 +2983,7 @@ List.showMask = false;
 	
 	/** return a reference on the node of the named button. */
 	EditBar.prototype.button = function(name){
-		return this.contact.button(name);
+		return this.UI.button(name);
 	}
 	
 	/**
@@ -2715,134 +2991,15 @@ List.showMask = false;
 	 * @memberof EditBar#
 	 */
 	EditBar.prototype.onPressButton = function(name, callback){
-		return this.contact.onPressButton(name, callback);
+		this.UI.onPressButton(name, callback);
 	}
 	
 	/**
 	 * Allows to put the edit bar into standard mode.
 	 * @memberof EditBar#
 	 */
-	EditBar.prototype.standardMode = function(erase){
-		/** erases the mode. */
-		if(typeof(erase) != "undefined" && erase){
-			var btnRemove = this.contact.button("remove");
-			var btnEdit = this.contact.button("edition");
-			
-			/** erases the standard mode. */
-			btnRemove.parentNode.removeChild(btnRemove);
-			btnEdit.parentNode.removeChild(btnEdit);
-			
-			/** puts the attributes to null */
-			this.contact.disableButton("remove");
-			this.contact.disableButton("edition");
-				
-		/** creates the mode. */
-		}else{
-			var mode = _private.get("mode", this);
-			if(typeof(mode) == "undefined" || (typeof(mode) != "undefined" && mode != "standard")){
-				/** erase the current mode */
-				if(typeof(mode) != "undefined" && mode == "edition"){
-					this.editionMode(true);
-				}
-			
-				/** close Button */
-				btnRemove = document.createElement("div");
-				btnRemove.className = "card-btn card-btnRemove";
-				btnRemove.title = "Remove";
-				this.appendChild(btnRemove);
-				this.contact.setButtonNode("remove", btnRemove);
-
-				/** edit Button */
-				btnEdit = document.createElement("div");
-				btnEdit.className = "card-btn card-btnEdit";
-				btnEdit.title = "Edition";
-				this.appendChild(btnEdit);
-				this.contact.setButtonNode("edition", btnEdit);
-				
-				/** enable the buttons */
-				this.contact.enableButton("remove");
-				this.contact.enableButton("edition");
-				
-				/** set the mode */
-				_private.set("mode", "standard", this);
-			}
-		}
-	}
-	
-	/**
-	 * Allows to put the edit bar into edition mode.
-	 * @memberof EditBar#
-	 */
-	EditBar.prototype.editionMode = function(erase){
-		/** erases the mode. */
-		if(typeof(erase) != "undefined" && erase){
-			/** get buttons */
-			var btnFontFamily = this.contact.button("fontFamily");
-			var btnBold = this.contact.button("bold");
-			var btnItalic = this.contact.button("italic");
-			var btnUnderline = this.contact.button("underline");
-			
-			/** remove nodes */
-			btnFontFamily.parentNode.removeChild(btnFontFamily);
-			btnBold.parentNode.removeChild(btnBold);
-			btnItalic.parentNode.removeChild(btnItalic);
-			btnUnderline.parentNode.removeChild(btnUnderline);
-			
-			/** disable the buttons */
-			this.contact.disableButton("fontFamily");
-			this.contact.disableButton("bold");
-			this.contact.disableButton("italic");
-			this.contact.disableButton("underline");
-			
-		/** creates the mode. */
-		}else{
-			var mode = _private.get("mode", this);
-			if(typeof(mode) == "undefined" || (typeof(mode) != "undefined" && mode != "edition")){
-				/** erase the current mode */
-				if(typeof(mode) != "undefined" && mode == "standard"){
-					this.standardMode(true);
-				}
-			
-				/** fontFamily */
-				var btnFontFamily = document.createElement("div");
-				btnFontFamily.className = "card-btn card-btnFontFamily";
-				btnFontFamily.title = "Font Style";
-				var fontName = document.createTextNode("Verdana");
-				btnFontFamily.appendChild(fontName);
-				this.appendChild(btnFontFamily);
-				this.contact.setButtonNode("fontFamily", btnFontFamily);
-			
-				/** bold Button */
-				var btnBold = document.createElement("div");
-				btnBold.className = "card-btn card-btnBold";
-				btnBold.title = "Bold";
-				this.appendChild(btnBold);
-				this.contact.setButtonNode("bold", btnBold);
-				
-				/** italic Button */
-				var btnItalic = document.createElement("div");
-				btnItalic.className = "card-btn card-btnItalic";
-				btnItalic.title = "Italic";
-				this.appendChild(btnItalic);
-				this.contact.setButtonNode("italic", btnItalic);
-				
-				/** underline Button */
-				var btnUnderline = document.createElement("div");
-				btnUnderline.className = "card-btn card-btnUnderline";
-				btnUnderline.title = "Underline";
-				this.appendChild(btnUnderline);
-				this.contact.setButtonNode("underline", btnUnderline, this);
-				
-				/** enable the button */
-				this.contact.enableButton("fontFamily");
-				this.contact.enableButton("bold");
-				this.contact.enableButton("italic");
-				this.contact.enableButton("underline");
-			
-				/** set the mode */
-				_private.set("mode", "edition", this);
-			}
-		}
+	EditBar.prototype.mode = function(name){
+		this.modeHandler.mode(name);
 	}
 	
 	/**
@@ -3112,7 +3269,7 @@ List.showMask = false;
 		
 			this.editable = true;
 			this.setDraggable(false);
-			this.editBar.editionMode();
+			this.editBar.mode("edition");
 			this.editBar.locked = true;
 			
 			this.editionArea.contentEditable = true;
@@ -3151,10 +3308,10 @@ List.showMask = false;
 				if(this.editBar.visible){
 					var that = this;
 					this.editBar.hide(1, function(){
-						that.editBar.standardMode();
+						that.editBar.mode("standard");
 					});
 				}else{
-					this.editBar.standardMode();
+					this.editBar.mode("standard");
 				}
 				
 				this.editionArea.blur();

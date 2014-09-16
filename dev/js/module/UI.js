@@ -1,6 +1,6 @@
 /**
- * Contains the ContactManager class.
- * The ContactManager class provide a meaning to manage
+ * Contains the UI class.
+ * The UI class provide a meaning to manage
  * buttons and their actions easily.
  * @file
  */
@@ -13,10 +13,10 @@
 	 * Provide the cards's edition bar
 	 * @constructor
 	 */
-	ContactManager = function(){}
+	UI = function(){}
 	
 	/** return a reference on the node of the named button. */
-	ContactManager.prototype.button = function(name){
+	UI.prototype.button = function(name){
 		var listBtn = _private.get("listBtn", this);
 		for(var i = 0; i < listBtn.length; i++){
 			if(listBtn[i].name == name){
@@ -31,7 +31,7 @@
 	 * @param {string} name - the name of the button
 	 * @param {object} [node] - the node of the button
 	 */
-	ContactManager.prototype.newButton = function(name, node){
+	UI.prototype.newButton = function(name, node){
 		if(typeof(node) == "undefined"){
 			node = null;
 		}
@@ -70,7 +70,7 @@
 	 * Define a new node to an existing button
 	 * @function
 	 */
-	ContactManager.prototype.setButtonNode = function(name, node){
+	UI.prototype.setButtonNode = function(name, node){
 		var listBtn = _private.get("listBtn", this);
 		for(var i = 0; i < listBtn.length; i++){
 			if(listBtn[i].name == name){
@@ -86,7 +86,7 @@
 	 * @function
 	 * @param {string} name - the name of the button.
 	 */
-	ContactManager.prototype.enableButton = function(name){
+	UI.prototype.enableButton = function(name){
 		setStateButton(name, "enable", this);
 	}
 	
@@ -95,7 +95,7 @@
 	 * @function
 	 * @param {string} name - the name of the button.
 	 */
-	ContactManager.prototype.disableButton = function(name){
+	UI.prototype.disableButton = function(name){
 		setStateButton(name, "disable", this);
 	}
 	
@@ -104,7 +104,7 @@
 	 * @function
 	 * @param {string} name - the name of the button.
 	 */
-	ContactManager.prototype.getStateButton = function(name){
+	UI.prototype.getStateButton = function(name){
 		var listBtn = _private.get("listBtn", this);
 		for(var i = 0; i < listBtn.length; i++){
 			if(listBtn[i].name == name){
@@ -114,25 +114,25 @@
 	}
 	
 	/** prevent the contact area to be active */
-	ContactManager.prototype.lock = function(){
+	UI.prototype.lock = function(){
 		_private.set("locked", true, this);
 	}
 	
 	/** prevent the contact area to be active  */
-	ContactManager.prototype.unlock = function(){
+	UI.prototype.unlock = function(){
 		_private.set("locked", false, this);
 	}
 	
 	/** return the current state of the contact manager */
-	ContactManager.prototype.getState = function(){
+	UI.prototype.getState = function(){
 		return _private.get("locked", this);
 	}
 	
 	/**
 	 * Allows to determine actions when a button is pressed
-	 * @memberof ContactManager#
+	 * @memberof UI#
 	 */
-	ContactManager.prototype.onPressButton = function(name, callback){
+	UI.prototype.onPressButton = function(name, callback){
 		var listBtn = _private.get("listBtn", this);
 		for(var i = 0; i < listBtn.length; i++){
 			if(listBtn[i].name == name){

@@ -99,7 +99,7 @@
 		
 			this.editable = true;
 			this.setDraggable(false);
-			this.editBar.editionMode();
+			this.editBar.mode("edition");
 			this.editBar.locked = true;
 			
 			this.editionArea.contentEditable = true;
@@ -138,10 +138,10 @@
 				if(this.editBar.visible){
 					var that = this;
 					this.editBar.hide(1, function(){
-						that.editBar.standardMode();
+						that.editBar.mode("standard");
 					});
 				}else{
-					this.editBar.standardMode();
+					this.editBar.mode("standard");
 				}
 				
 				this.editionArea.blur();

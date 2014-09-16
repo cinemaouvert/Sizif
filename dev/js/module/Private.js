@@ -21,15 +21,18 @@
  */
 
 (function(){
+	/** @private */
+	var _storage = [];
+
 	/**
 	 * @constructor
 	 */ 
 	Private = function(){
-		/** contains the memory used by the handler */
-		this.memory = []; 
-		
-		/** contains the identifier of the memory last entry used. */
-		this.lastUsedId = -1;
+		_storage.push({
+			privateObj: this, /** the current instance of private */
+			memory: [], /** contains the memory used by the handler */
+			lastUsedId: -1 /** contains the identifier of the memory last entry used. */
+		});
 	}
 	
 	/** 
@@ -37,15 +40,18 @@
 	 * @function
 	 */
 	Private.prototype.set = function(name, value, instance){
-		if(this.lastUsedId != -1 && this.memory[this.lastUsedId].instance == instance){
-			this.memory[this.lastUsedId].attributes[name] = value;
+		var memory = getMemory(this);
+		var lastUsedId = getLastUsedId(this);
+		
+		if(lastUsedId != -1 && memory[lastUsedId].instance == instance){
+			memory[lastUsedId].attribute[name] = value;
 			return;
 		}
 
-		for(var i = 0; i < this.memory.length; i++){
-			if(this.memory[i].instance == instance){
-				this.lastUsedId = i;
-				this.memory[i].attributes[name] = value;
+		for(var i = 0; i < memory.length; i++){
+			if(memory[i].instance == instance){
+				setLastUsedId(i, this);
+				memory[i].attribute[name] = value;
 				return;
 			}
 		}
@@ -53,10 +59,11 @@
 		/** creates a new entry */
 		var newEntry = {};
 		newEntry["instance"] = instance;
-		newEntry["attributes"] = [];
-		newEntry.attributes[name] = value;
+		newEntry["attribute"] = [];
+		newEntry.attribute[name] = value;
 		
-		this.memory.push(newEntry); 
+		memory.push(newEntry); 
+		setMemory(memory, this);
 	}
 	
 	/** 
@@ -64,17 +71,40 @@
 	 * @function
 	 */
 	Private.prototype.get = function(name, instance){
-		if(this.lastUsedId != -1 && this.memory[this.lastUsedId].instance == instance){
-			return this.memory[this.lastUsedId].attributes[name];
+		var memory = getMemory(this);
+		var lastUsedId = getLastUsedId(this);
+	
+		if(lastUsedId != -1 && memory[lastUsedId].instance == instance){
+			return memory[lastUsedId].attribute[name];
 		}
 		
-		for(var i = 0; i < this.memory.length; i++){
-			if(this.memory[i].instance == instance){
-				this.lastUsedId = i;
-				return this.memory[i].attributes[name];
+		for(var i = 0; i < memory.length; i++){
+			if(memory[i].instance == instance){
+				setLastUsedId(i, this);
+				return memory[i].attribute[name];
 			}
 		}
 		return undefined;
+	}
+	
+	/** 
+	 * Allows to delete a private variable to an instance.
+	 * @function
+	 */
+	Private.prototype.remove = function(name, instance){
+		var memory = getMemory(this);
+		var lastUsedId = getLastUsedId(this);
+	
+		if(lastUsedId != -1 && memory[lastUsedId].instance == instance){
+			delete memory[lastUsedId].attribute[name];
+		}
+		
+		for(var i = 0; i < memory.length; i++){
+			if(memory[i].instance == instance){
+				delete memory[lastUsedId].attribute[name];
+			}
+		}
+		setMemory(memory, this);
 	}
 	
 	/** 
@@ -83,13 +113,14 @@
 	 * @return {array} result - A list of object containing the instance and the value of the private variable.
 	 */
 	Private.prototype.getAllInstance = function(name){
+		var memory = getMemory(this);
 		var result = [];
 		
-		for(var i = 0; i < this.memory.length; i++){
-			if(typeof(this.memory[i].attributes[name]) != "undefined"){
+		for(var i = 0; i < memory.length; i++){
+			if(typeof(memory[i].attribute[name]) != "undefined"){
 				var obj = {};
-				obj.instance = this.memory[i].instance;
-				obj[name] = this.memory[i].attributes[name];
+				obj.instance = memory[i].instance;
+				obj[name] = memory[i].attribute[name];
 				result.push(obj);
 			}
 		}
@@ -101,10 +132,66 @@
 	 * @function
 	 */
 	Private.prototype.deleteInstance = function(instance){	
-		for(var i = 0; i < this.memory.length; i++){
-			if(this.memory[i].instance == instance){
-				this.memory.splice(i, 1);
+		var memory = getMemory(this);
+	
+		for(var i = 0; i < memory.length; i++){
+			if(memory[i].instance == instance){
+				memory.splice(i, 1);
+			}
+		}
+		setMemory(memory, this);
+	}
+	
+	/** 
+	 * return the memory of the private object 
+	 * @function
+	 * @private
+	 */
+	function getMemory(privateObj){
+		for(var i = 0; i < _storage.length; i++){
+			if(_storage[i].privateObj == privateObj){
+				return _storage[i].memory;
 			}
 		}
 	}
+	
+	/** 
+	 * set the memory of the private object
+	 * @function
+	 * @private
+	 */
+	function setMemory(memory, privateObj){
+		for(var i = 0; i < _storage.length; i++){
+			if(_storage[i].privateObj == privateObj){
+				_storage[i].memory = memory;
+			}
+		}
+	}
+	
+	/** 
+	 * return the last used id by the private object 
+	 * @function
+	 * @private
+	 */
+	function getLastUsedId(privateObj){
+		for(var i = 0; i < _storage.length; i++){
+			if(_storage[i].privateObj == privateObj){
+				return _storage[i].lastUsedId;
+			}
+		}
+	}
+		
+	/** 
+	 * set the last used id by the private object
+	 * @function
+	 * @private
+	 */
+	function setLastUsedId(id, privateObj){
+		for(var i = 0; i < _storage.length; i++){
+			if(_storage[i].privateObj == privateObj){
+				_storage[i].lastUsedId = id;
+			}
+		}
+	}
+	
 })();

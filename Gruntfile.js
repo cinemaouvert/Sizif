@@ -18,7 +18,8 @@ module.exports = function(grunt) {
 	var jsSrc = [
 		module + 'util.js',
 		module + 'Private.js',
-		module + 'ContactManager.js',
+		module + 'UI.js',
+		module + 'ModeHandler.js',
 		module + 'app.js',
 		module + 'key.js',
 		module + 'Shortcut.js',
