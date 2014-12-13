@@ -1,0 +1,45 @@
+Le code est documenté en grande partie.
+
+Il s'agit d'une application monopage. La page html la représentant est "index.html" à la racine du dossier.
+
+Tous les objets graphiques existent sous forme de classe javascript.
+Chaque classe a son propre fichier. 
+
+Les fichiers des sources javascript sont dans le répertoire "dev". Il faut les concaténer
+dans l'ordre utilisé par le grunt file. 
+
+Le fichier main.js fais l'assemblage lors de l'ouverture de l'application.
+
+Dans les fichiers javascripts. Les fichiers qui portent un nom commencant par une majuscule
+sont des classes tandis que les nom en minuscule sont des espaces de nom.
+Tous ce qui se trouve dans "module" représente des fonctionnalités indépendantes
+(et donc modulaire) utilisable quelque soit le contexte tandis que ce qui est
+à la raçine du programme représente le code propre au programme.
+
+Les fichiers de langue sont dans le répertoire "lang".
+
+Enfin les fichiers définitifs envoyés par le serveur sont dans "dist".
+
+Le dossier "serveur" ne contient rien d'utilisé par le programme, il
+a été utilisé au début pour faire des tests. 
+
+Dans le dossier "img" on trouve les images utilisées par le programme
+sous leur forme "svg" et sous la forme du fichier de projet illustrator
+qui a servi à réaliser les images.
+
+Le "Gruntfile" permet l'utilisation d'un environnement de développement particulier.
+On n'est pas obligé de l'utilisé. Le tout est qu'il faut que les fichiers 
+javascripts soient concaténés dans l'ordre établis par le gruntfile et les .scss
+compilés. 
+
+Le fichier "settings.json" permet le réglage de toute l'application.
+
+Le fichier "offline.appcache" permet l'utilisation de l'application en 
+hors-ligne. Pour cela, il y a une ligne à décommenter dans le "index.html".
+
+Le fichier "package.json" permet l'installation de l'environnement
+de développement.
+
+Enfin le code est commenté de facon à pouvoir utiliser "jsdoc"
+qui génèrera la documentation de ce dernier. C'est cette documentation 
+qui fait référence.
